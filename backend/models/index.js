@@ -5,6 +5,8 @@ const Exam = require('./Exam');
 const Prescription = require('./Prescription');
 const PrescriptionExam = require('./PrescriptionExam');
 const Payment = require('./Payment');
+const Result = require('./Result');
+const MobileMoneyTransaction = require('./MobileMoneyTransaction');
 
 // ==========================================
 // ASSOCIATIONS
@@ -80,6 +82,46 @@ Payment.belongsTo(User, {
   as: 'cashier'
 });
 
+// PrescriptionExam - Result
+PrescriptionExam.hasMany(Result, {
+  foreignKey: 'prescriptionExamId',
+  as: 'results'
+});
+Result.belongsTo(PrescriptionExam, {
+  foreignKey: 'prescriptionExamId',
+  as: 'prescriptionExam'
+});
+
+// User (Uploader) - Result
+User.hasMany(Result, {
+  foreignKey: 'uploadedBy',
+  as: 'uploadedResults'
+});
+Result.belongsTo(User, {
+  foreignKey: 'uploadedBy',
+  as: 'uploader'
+});
+
+// User (Validator) - Result
+User.hasMany(Result, {
+  foreignKey: 'validatedBy',
+  as: 'validatedResults'
+});
+Result.belongsTo(User, {
+  foreignKey: 'validatedBy',
+  as: 'validator'
+});
+
+// Payment - MobileMoneyTransaction
+Payment.hasOne(MobileMoneyTransaction, {
+  foreignKey: 'paymentId',
+  as: 'mobileMoneyTransaction'
+});
+MobileMoneyTransaction.belongsTo(Payment, {
+  foreignKey: 'paymentId',
+  as: 'payment'
+});
+
 // ==========================================
 // SYNCHRONISATION
 // ==========================================
@@ -103,5 +145,7 @@ module.exports = {
   Prescription,
   PrescriptionExam,
   Payment,
+  Result,
+  MobileMoneyTransaction,
   syncDatabase
 };

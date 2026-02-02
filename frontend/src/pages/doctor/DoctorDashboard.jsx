@@ -21,12 +21,14 @@ import {
 import {
   PersonSearch as PersonSearchIcon,
   Assignment as AssignmentIcon,
-  Add as AddIcon
+  Add as AddIcon,
+  Folder as FolderIcon
 } from '@mui/icons-material';
 import { useAuth } from '../../contexts/AuthContext';
 import api from '../../services/api';
 import PatientSearch from './PatientSearch';
 import PrescriptionForm from './PrescriptionForm';
+import PatientRecord from './PatientRecord';
 
 const DoctorDashboard = () => {
   const { user } = useAuth();
@@ -212,6 +214,11 @@ const DoctorDashboard = () => {
             label="Mes Prescriptions"
             iconPosition="start"
           />
+          <Tab
+            icon={<FolderIcon />}
+            label="Dossiers Patients"
+            iconPosition="start"
+          />
         </Tabs>
       </Paper>
 
@@ -303,6 +310,10 @@ const DoctorDashboard = () => {
             </Table>
           </TableContainer>
         </Paper>
+      )}
+
+      {activeTab === 2 && (
+        <PatientRecord />
       )}
     </Container>
   );

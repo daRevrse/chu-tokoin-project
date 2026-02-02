@@ -17,6 +17,15 @@ const prescriptionRoutes = require('./routes/prescriptions');
 const paymentRoutes = require('./routes/payments');
 const serviceRoutes = require('./routes/services');
 const statsRoutes = require('./routes/stats');
+const resultRoutes = require('./routes/results');
+const patientRecordRoutes = require('./routes/patientRecords');
+const portalRoutes = require('./routes/portal');
+const reportRoutes = require('./routes/reports');
+const mobileMoneyRoutes = require('./routes/mobileMoney');
+const healthRoutes = require('./routes/health');
+
+// Import du rate limiter
+const { generalLimiter, authLimiter, paymentLimiter, portalLimiter } = require('./middleware/rateLimiter');
 
 const app = express();
 
@@ -42,27 +51,30 @@ app.use(morgan('combined', {
   }
 }));
 
+// Rate limiting general (en production)
+if (process.env.NODE_ENV === 'production') {
+  app.use(generalLimiter);
+}
+
 // Servir les fichiers statiques (uploads)
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// Route de sante
-app.get('/api/health', (req, res) => {
-  res.json({
-    status: 'OK',
-    message: 'CHU Tokoin API is running',
-    timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV
-  });
-});
+// Routes de sante (sans authentification)
+app.use('/api/health', healthRoutes);
 
-// Routes API
-app.use('/api/auth', authRoutes);
+// Routes API avec rate limiting specifique
+app.use('/api/auth', authLimiter, authRoutes);
 app.use('/api/patients', patientRoutes);
 app.use('/api/exams', examRoutes);
 app.use('/api/prescriptions', prescriptionRoutes);
 app.use('/api/payments', paymentRoutes);
+app.use('/api/payments/mobile-money', paymentLimiter, mobileMoneyRoutes);
 app.use('/api/services', serviceRoutes);
 app.use('/api/stats', statsRoutes);
+app.use('/api/results', resultRoutes);
+app.use('/api/patient-records', patientRecordRoutes);
+app.use('/api/portal', portalLimiter, portalRoutes);
+app.use('/api/reports', reportRoutes);
 
 // Middleware de gestion des erreurs
 app.use(notFound);

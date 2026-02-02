@@ -27,6 +27,8 @@ import api from '../../services/api';
 import QRScanner from './QRScanner';
 import ExamQueue from './ExamQueue';
 import PatientExamCard from './PatientExamCard';
+import ResultUpload from './ResultUpload';
+import ResultsViewer from './ResultsViewer';
 
 const ServiceDashboard = () => {
   const { user } = useAuth();
@@ -38,6 +40,8 @@ const ServiceDashboard = () => {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(false);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
+  const [uploadDialog, setUploadDialog] = useState({ open: false, examId: null, examName: '' });
+  const [viewResultsDialog, setViewResultsDialog] = useState({ open: false, examId: null, examName: '' });
 
   const serviceName = user?.role === 'RADIOLOGIST' ? 'Radiologie' : 'Laboratoire';
 
@@ -165,6 +169,19 @@ const ServiceDashboard = () => {
 
   const handleCloseSnackbar = () => {
     setSnackbar(prev => ({ ...prev, open: false }));
+  };
+
+  const handleUploadResult = (examId, examName) => {
+    setUploadDialog({ open: true, examId, examName });
+  };
+
+  const handleViewResults = (examId, examName) => {
+    setViewResultsDialog({ open: true, examId, examName });
+  };
+
+  const handleUploadSuccess = () => {
+    showSnackbar('Resultat uploade avec succes', 'success');
+    fetchData();
   };
 
   return (
@@ -307,6 +324,7 @@ const ServiceDashboard = () => {
           exams={pendingExams}
           onStartExam={handleStartExam}
           onRefresh={fetchPendingExams}
+          onViewResults={handleViewResults}
           loading={loading}
         />
       )}
@@ -316,6 +334,8 @@ const ServiceDashboard = () => {
           title="Examens en cours"
           exams={inProgressExams}
           onCompleteExam={handleCompleteExam}
+          onUploadResult={handleUploadResult}
+          onViewResults={handleViewResults}
           onRefresh={fetchInProgressExams}
           loading={loading}
         />
@@ -326,6 +346,8 @@ const ServiceDashboard = () => {
           title="Mes examens"
           exams={myExams}
           onCompleteExam={handleCompleteExam}
+          onUploadResult={handleUploadResult}
+          onViewResults={handleViewResults}
           onRefresh={fetchMyExams}
           loading={loading}
         />
@@ -347,6 +369,23 @@ const ServiceDashboard = () => {
           {snackbar.message}
         </Alert>
       </Snackbar>
+
+      {/* Dialog d'upload de resultat */}
+      <ResultUpload
+        open={uploadDialog.open}
+        onClose={() => setUploadDialog({ open: false, examId: null, examName: '' })}
+        prescriptionExamId={uploadDialog.examId}
+        examName={uploadDialog.examName}
+        onUploadSuccess={handleUploadSuccess}
+      />
+
+      {/* Dialog de visualisation des resultats */}
+      <ResultsViewer
+        open={viewResultsDialog.open}
+        onClose={() => setViewResultsDialog({ open: false, examId: null, examName: '' })}
+        prescriptionExamId={viewResultsDialog.examId}
+        examName={viewResultsDialog.examName}
+      />
     </Container>
   );
 };

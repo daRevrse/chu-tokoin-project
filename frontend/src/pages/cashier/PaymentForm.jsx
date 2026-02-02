@@ -21,15 +21,18 @@ import {
 import {
   ArrowBack as BackIcon,
   Payment as PaymentIcon,
-  CheckCircle as SuccessIcon
+  CheckCircle as SuccessIcon,
+  PhoneAndroid as MobileIcon
 } from '@mui/icons-material';
 import api from '../../services/api';
+import MobileMoneyPayment from '../../components/cashier/MobileMoneyPayment';
 
 const PaymentForm = ({ prescription, onBack, onSuccess }) => {
   const [paymentMethod, setPaymentMethod] = useState('CASH');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [paymentResult, setPaymentResult] = useState(null);
+  const [mobileMoneyDialogOpen, setMobileMoneyDialogOpen] = useState(false);
 
   const formatPrice = (price) => {
     return new Intl.NumberFormat('fr-FR').format(price) + ' FCFA';
@@ -47,6 +50,12 @@ const PaymentForm = ({ prescription, onBack, onSuccess }) => {
   };
 
   const handlePayment = async () => {
+    // Si Mobile Money, ouvrir le dialog specifique
+    if (paymentMethod === 'MOBILE_MONEY') {
+      setMobileMoneyDialogOpen(true);
+      return;
+    }
+
     setLoading(true);
     setError('');
 
@@ -66,6 +75,21 @@ const PaymentForm = ({ prescription, onBack, onSuccess }) => {
       setError(error.response?.data?.message || 'Erreur lors du traitement du paiement');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleMobileMoneySuccess = (qrCode) => {
+    // Creer un objet de resultat similaire pour l'affichage
+    setPaymentResult({
+      payment: {
+        paymentNumber: `MM-${Date.now()}`,
+        amount: prescription.totalAmount,
+        paymentMethod: 'MOBILE_MONEY',
+        qrCode: qrCode
+      }
+    });
+    if (onSuccess) {
+      onSuccess({ payment: { qrCode } });
     }
   };
 
@@ -318,17 +342,25 @@ const PaymentForm = ({ prescription, onBack, onSuccess }) => {
             <Button
               fullWidth
               variant="contained"
-              color="success"
+              color={paymentMethod === 'MOBILE_MONEY' ? 'warning' : 'success'}
               size="large"
-              startIcon={<PaymentIcon />}
+              startIcon={paymentMethod === 'MOBILE_MONEY' ? <MobileIcon /> : <PaymentIcon />}
               onClick={handlePayment}
               disabled={loading}
             >
-              {loading ? 'Traitement...' : 'Confirmer le Paiement'}
+              {loading ? 'Traitement...' : paymentMethod === 'MOBILE_MONEY' ? 'Payer via Mobile Money' : 'Confirmer le Paiement'}
             </Button>
           </Paper>
         </Grid>
       </Grid>
+
+      {/* Dialog Mobile Money */}
+      <MobileMoneyPayment
+        open={mobileMoneyDialogOpen}
+        onClose={() => setMobileMoneyDialogOpen(false)}
+        prescription={prescription}
+        onSuccess={handleMobileMoneySuccess}
+      />
     </Box>
   );
 };

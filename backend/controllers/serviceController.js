@@ -214,7 +214,7 @@ const serviceController = {
   completeExam: async (req, res) => {
     try {
       const { id } = req.params;
-      const { notes } = req.body;
+      const notes = req.body?.notes;
 
       const prescriptionExam = await PrescriptionExam.findByPk(id, {
         include: [

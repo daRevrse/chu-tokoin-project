@@ -18,8 +18,11 @@ import DoctorDashboard from './pages/doctor/DoctorDashboard';
 import CashierDashboard from './pages/cashier/CashierDashboard';
 import ServiceDashboard from './pages/service/ServiceDashboard';
 
-// Placeholder pages (seront implementees dans les phases suivantes)
-const AdminDashboard = () => <div style={{ padding: 24 }}>Admin Dashboard - Phase 4</div>;
+// Portail Patient
+import PatientPortal from './pages/portal/PatientPortal';
+
+// Admin Dashboard
+import AdminDashboard from './pages/admin/AdminDashboard';
 
 // Composant pour les routes protegees avec layout
 const ProtectedWithLayout = ({ children, allowedRoles }) => (
@@ -40,6 +43,7 @@ function App() {
             {/* Routes publiques */}
             <Route path="/login" element={<Login />} />
             <Route path="/unauthorized" element={<Unauthorized />} />
+            <Route path="/portal" element={<PatientPortal />} />
 
             {/* Dashboard principal */}
             <Route

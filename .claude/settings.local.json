@@ -27,7 +27,10 @@
       "Bash(for pid in 14180 19928 20488)",
       "Bash(do kill -9 $pid)",
       "Bash(done)",
-      "Bash(powershell -Command \"Stop-Process -Id 14180,19928,20488 -Force\")"
+      "Bash(powershell -Command \"Stop-Process -Id 14180,19928,20488 -Force\")",
+      "Bash(powershell -Command:*)",
+      "Bash(python3:*)",
+      "Bash(node -e:*)"
     ]
   }
 }

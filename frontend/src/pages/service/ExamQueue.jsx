@@ -17,7 +17,9 @@ import {
 import {
   PlayArrow as PlayIcon,
   CheckCircle as CompleteIcon,
-  Refresh as RefreshIcon
+  Refresh as RefreshIcon,
+  CloudUpload as UploadIcon,
+  Visibility as ViewIcon
 } from '@mui/icons-material';
 
 const statusConfig = {
@@ -26,7 +28,7 @@ const statusConfig = {
   COMPLETED: { label: 'Termine', color: 'success' }
 };
 
-const ExamQueue = ({ exams, onStartExam, onCompleteExam, onRefresh, loading, title }) => {
+const ExamQueue = ({ exams, onStartExam, onCompleteExam, onUploadResult, onViewResults, onRefresh, loading, title }) => {
   const formatDate = (date) => {
     if (!date) return '-';
     return new Date(date).toLocaleDateString('fr-FR', {
@@ -144,10 +146,29 @@ const ExamQueue = ({ exams, onStartExam, onCompleteExam, onRefresh, loading, tit
                         </IconButton>
                       </Tooltip>
                     )}
-                    {exam.status === 'COMPLETED' && (
-                      <Typography variant="caption" color="success.main">
-                        Termine
-                      </Typography>
+                    {(exam.status === 'IN_PROGRESS' || exam.status === 'COMPLETED') && onUploadResult && (
+                      <Tooltip title="Uploader un resultat">
+                        <IconButton
+                          color="primary"
+                          onClick={() => onUploadResult(exam.id, exam.examName)}
+                          disabled={loading}
+                          size="small"
+                        >
+                          <UploadIcon />
+                        </IconButton>
+                      </Tooltip>
+                    )}
+                    {onViewResults && (
+                      <Tooltip title="Voir les resultats">
+                        <IconButton
+                          color="info"
+                          onClick={() => onViewResults(exam.id, exam.examName)}
+                          disabled={loading}
+                          size="small"
+                        >
+                          <ViewIcon />
+                        </IconButton>
+                      </Tooltip>
                     )}
                   </TableCell>
                 </TableRow>
