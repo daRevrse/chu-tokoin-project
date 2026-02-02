@@ -1,0 +1,33 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm init:*)",
+      "Bash(npm install:*)",
+      "Bash(npx create-react-app . --template cra-template)",
+      "Bash(mysql:*)",
+      "Bash(where:*)",
+      "Bash(timeout 10 npm run dev:*)",
+      "Bash(\"C:\\\\Program Files\\\\MySQL\\\\MySQL Server 8.0\\\\bin\\\\mysql.exe\" -u root -e \"CREATE DATABASE IF NOT EXISTS chu_tokoin CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;\")",
+      "Bash(\"C:\\\\xampp\\\\mysql\\\\bin\\\\mysql.exe\" -u root -e \"CREATE DATABASE IF NOT EXISTS chu_tokoin CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;\")",
+      "Bash(timeout 15 node:*)",
+      "Bash(curl:*)",
+      "Bash(taskkill:*)",
+      "Bash(node seeds/initialData.js:*)",
+      "Bash(npm run dev:*)",
+      "Bash(timeout /t 5 /nobreak)",
+      "Bash(ping:*)",
+      "Bash(cmd /c \"cd /d C:\\\\Users\\\\Administrateur\\\\chu-tokoin-project\\\\backend && npm run dev\")",
+      "Bash(node server.js:*)",
+      "Bash(npm start)",
+      "Bash(set PORT=3001)",
+      "Bash(PORT=3001 npm start:*)",
+      "Bash(netstat:*)",
+      "Bash(findstr:*)",
+      "Bash(cmd /c \"taskkill /F /PID 14180 & taskkill /F /PID 19928 & taskkill /F /PID 20488\")",
+      "Bash(for pid in 14180 19928 20488)",
+      "Bash(do kill -9 $pid)",
+      "Bash(done)",
+      "Bash(powershell -Command \"Stop-Process -Id 14180,19928,20488 -Force\")"
+    ]
+  }
+}
