@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   AppBar,
@@ -16,14 +16,13 @@ import {
   Menu,
   MenuItem,
   Chip,
+  Badge,
   useTheme,
   useMediaQuery
 } from '@mui/material';
 import {
   Menu as MenuIcon,
   Dashboard as DashboardIcon,
-  Person as PersonIcon,
-  Assignment as AssignmentIcon,
   Payment as PaymentIcon,
   LocalHospital as HospitalIcon,
   Science as ScienceIcon,
@@ -33,6 +32,7 @@ import {
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import api from '../../services/api';
 
 const drawerWidth = 280;
 
@@ -44,6 +44,24 @@ const MainLayout = ({ children }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, logout } = useAuth();
+  const [doctorBadge, setDoctorBadge] = useState(0);
+
+  // Fetch notification count for doctors
+  useEffect(() => {
+    if (user?.role === 'DOCTOR' || user?.role === 'ADMIN') {
+      const fetchBadge = async () => {
+        try {
+          const response = await api.get('/stats/doctor');
+          setDoctorBadge(response.data.newResultsCount || 0);
+        } catch {
+          // Silently fail
+        }
+      };
+      fetchBadge();
+      const interval = setInterval(fetchBadge, 60000);
+      return () => clearInterval(interval);
+    }
+  }, [user?.role]);
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
@@ -174,7 +192,11 @@ const MainLayout = ({ children }) => {
               }}
             >
               <ListItemIcon sx={{ color: location.pathname.startsWith(item.path) ? 'primary.main' : 'inherit' }}>
-                {item.icon}
+                {item.path === '/doctor' && doctorBadge > 0 ? (
+                  <Badge badgeContent={doctorBadge} color="error" max={99}>
+                    {item.icon}
+                  </Badge>
+                ) : item.icon}
               </ListItemIcon>
               <ListItemText primary={item.text} />
             </ListItemButton>

@@ -30,7 +30,8 @@
       "Bash(powershell -Command \"Stop-Process -Id 14180,19928,20488 -Force\")",
       "Bash(powershell -Command:*)",
       "Bash(python3:*)",
-      "Bash(node -e:*)"
+      "Bash(node -e:*)",
+      "Bash(npx react-scripts build)"
     ]
   }
 }

@@ -309,7 +309,7 @@ const prescriptionController = {
    */
   getMyPrescriptions: async (req, res) => {
     try {
-      const { status, page = 1, limit = 50 } = req.query;
+      const { status, page = 1, limit = 50, startDate, endDate, patientSearch } = req.query;
       const offset = (page - 1) * limit;
 
       const where = { doctorId: req.user.id };
@@ -318,10 +318,29 @@ const prescriptionController = {
         where.status = status;
       }
 
+      if (startDate) {
+        where.createdAt = { ...(where.createdAt || {}), [Op.gte]: new Date(startDate) };
+      }
+
+      if (endDate) {
+        const end = new Date(endDate);
+        end.setHours(23, 59, 59, 999);
+        where.createdAt = { ...(where.createdAt || {}), [Op.lte]: end };
+      }
+
+      const patientWhere = {};
+      if (patientSearch) {
+        patientWhere[Op.or] = [
+          { firstName: { [Op.like]: `%${patientSearch}%` } },
+          { lastName: { [Op.like]: `%${patientSearch}%` } },
+          { patientNumber: { [Op.like]: `%${patientSearch}%` } }
+        ];
+      }
+
       const { count, rows } = await Prescription.findAndCountAll({
         where,
         include: [
-          { model: Patient, as: 'patient' },
+          { model: Patient, as: 'patient', where: patientSearch ? patientWhere : undefined },
           {
             model: PrescriptionExam,
             as: 'prescriptionExams',
@@ -391,6 +410,145 @@ const prescriptionController = {
       res.status(500).json({
         error: 'Erreur lors de la recuperation des prescriptions'
       });
+    }
+  },
+
+  /**
+   * Exporter une prescription en PDF
+   * GET /api/prescriptions/:id/pdf
+   */
+  exportPDF: async (req, res) => {
+    try {
+      const PDFDocument = require('pdfkit');
+
+      const prescription = await Prescription.findByPk(req.params.id, {
+        include: [
+          { model: Patient, as: 'patient' },
+          {
+            model: User,
+            as: 'doctor',
+            attributes: ['id', 'firstName', 'lastName', 'email']
+          },
+          {
+            model: PrescriptionExam,
+            as: 'prescriptionExams',
+            include: [{ model: Exam, as: 'exam' }]
+          }
+        ]
+      });
+
+      if (!prescription) {
+        return res.status(404).json({ error: 'Prescription non trouvee' });
+      }
+
+      const doc = new PDFDocument({ size: 'A4', margin: 50 });
+
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename=prescription-${prescription.prescriptionNumber}.pdf`);
+
+      doc.pipe(res);
+
+      // Header
+      doc.fontSize(20).font('Helvetica-Bold').text('CHU TOKOIN', { align: 'center' });
+      doc.fontSize(10).font('Helvetica').text('Centre Hospitalier Universitaire de Tokoin - Lome, Togo', { align: 'center' });
+      doc.moveDown(0.5);
+      doc.moveTo(50, doc.y).lineTo(545, doc.y).stroke();
+      doc.moveDown(1);
+
+      // Title
+      doc.fontSize(16).font('Helvetica-Bold').text('PRESCRIPTION MEDICALE', { align: 'center' });
+      doc.moveDown(0.5);
+      doc.fontSize(10).font('Helvetica').text(`N° ${prescription.prescriptionNumber}`, { align: 'center' });
+      doc.moveDown(1);
+
+      // Date
+      const date = new Date(prescription.createdAt);
+      const dateStr = date.toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' });
+      doc.fontSize(10).text(`Date: ${dateStr}`, { align: 'right' });
+      doc.moveDown(1);
+
+      // Patient Info
+      doc.fontSize(12).font('Helvetica-Bold').text('Patient');
+      doc.fontSize(10).font('Helvetica');
+      doc.text(`Nom: ${prescription.patient.lastName} ${prescription.patient.firstName}`);
+      doc.text(`N° Patient: ${prescription.patient.patientNumber}`);
+      doc.text(`Sexe: ${prescription.patient.gender === 'M' ? 'Homme' : 'Femme'}`);
+      if (prescription.patient.dateOfBirth) {
+        const dob = new Date(prescription.patient.dateOfBirth);
+        doc.text(`Date de naissance: ${dob.toLocaleDateString('fr-FR')}`);
+      }
+      if (prescription.patient.phone) {
+        doc.text(`Telephone: ${prescription.patient.phone}`);
+      }
+      doc.moveDown(1);
+
+      // Medecin
+      doc.fontSize(12).font('Helvetica-Bold').text('Medecin prescripteur');
+      doc.fontSize(10).font('Helvetica');
+      doc.text(`Dr. ${prescription.doctor.lastName} ${prescription.doctor.firstName}`);
+      doc.moveDown(1);
+
+      // Examens table
+      doc.fontSize(12).font('Helvetica-Bold').text('Examens prescrits');
+      doc.moveDown(0.5);
+
+      // Table header
+      const tableTop = doc.y;
+      const col1 = 50;
+      const col2 = 130;
+      const col3 = 360;
+      const col4 = 460;
+
+      doc.fontSize(9).font('Helvetica-Bold');
+      doc.text('Code', col1, tableTop);
+      doc.text('Examen', col2, tableTop);
+      doc.text('Categorie', col3, tableTop);
+      doc.text('Prix (FCFA)', col4, tableTop);
+
+      doc.moveTo(50, tableTop + 15).lineTo(545, tableTop + 15).stroke();
+
+      let y = tableTop + 22;
+      doc.font('Helvetica').fontSize(9);
+
+      prescription.prescriptionExams.forEach((pe) => {
+        if (y > 700) {
+          doc.addPage();
+          y = 50;
+        }
+        doc.text(pe.exam.code, col1, y);
+        doc.text(pe.exam.name, col2, y, { width: 220 });
+        doc.text(pe.exam.category === 'RADIOLOGY' ? 'Radiologie' : 'Laboratoire', col3, y);
+        doc.text(new Intl.NumberFormat('fr-FR').format(pe.price), col4, y);
+        y += 18;
+      });
+
+      // Total
+      doc.moveTo(50, y).lineTo(545, y).stroke();
+      y += 8;
+      doc.fontSize(11).font('Helvetica-Bold');
+      doc.text('TOTAL:', col3, y);
+      doc.text(new Intl.NumberFormat('fr-FR').format(prescription.totalAmount) + ' FCFA', col4, y);
+
+      // Notes
+      if (prescription.notes) {
+        y += 30;
+        doc.fontSize(12).font('Helvetica-Bold').text('Notes', 50, y);
+        y += 15;
+        doc.fontSize(10).font('Helvetica').text(prescription.notes, 50, y, { width: 495 });
+      }
+
+      // Footer
+      doc.fontSize(8).font('Helvetica')
+        .text(
+          `Document genere le ${new Date().toLocaleDateString('fr-FR')} a ${new Date().toLocaleTimeString('fr-FR')}`,
+          50, 750,
+          { align: 'center' }
+        );
+
+      doc.end();
+    } catch (error) {
+      logger.error('Export prescription PDF error:', error);
+      res.status(500).json({ error: 'Erreur lors de la generation du PDF' });
     }
   }
 };

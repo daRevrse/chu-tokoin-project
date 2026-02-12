@@ -7,6 +7,12 @@ const roleCheck = require('../middleware/roleCheck');
 // Toutes les routes necessitent une authentification
 router.use(authenticateToken);
 
+// Stats medecin
+router.get('/doctor',
+  roleCheck('DOCTOR', 'ADMIN'),
+  statsController.getDoctorStats
+);
+
 // Stats service (radiologie/labo)
 router.get('/service',
   roleCheck('RADIOLOGIST', 'LAB_TECHNICIAN', 'ADMIN'),
