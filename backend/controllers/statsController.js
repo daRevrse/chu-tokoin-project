@@ -1,9 +1,129 @@
-const { PrescriptionExam, Exam, User, Payment, Prescription, Patient } = require('../models');
+const { PrescriptionExam, Exam, User, Payment, Prescription, Patient, Result } = require('../models');
 const { Op } = require('sequelize');
 const sequelize = require('../config/database');
 const logger = require('../utils/logger');
 
 const statsController = {
+  /**
+   * Statistiques pour un medecin
+   * GET /api/stats/doctor
+   */
+  getDoctorStats: async (req, res) => {
+    try {
+      const doctorId = req.user.id;
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      const startOfWeek = new Date(today);
+      startOfWeek.setDate(today.getDate() - today.getDay());
+
+      const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+
+      // Prescriptions today
+      const prescriptionsToday = await Prescription.count({
+        where: {
+          doctorId,
+          createdAt: { [Op.gte]: today }
+        }
+      });
+
+      // Distinct patients today
+      const patientsToday = await Prescription.count({
+        where: {
+          doctorId,
+          createdAt: { [Op.gte]: today }
+        },
+        distinct: true,
+        col: 'patientId'
+      });
+
+      // Pending prescriptions
+      const pendingPrescriptions = await Prescription.count({
+        where: {
+          doctorId,
+          status: 'PENDING'
+        }
+      });
+
+      // In progress prescriptions (awaiting exam results)
+      const inProgressPrescriptions = await Prescription.count({
+        where: {
+          doctorId,
+          status: { [Op.in]: ['PAID', 'IN_PROGRESS'] }
+        }
+      });
+
+      // Total prescriptions
+      const totalPrescriptions = await Prescription.count({
+        where: { doctorId }
+      });
+
+      // Distinct patients total
+      const distinctPatients = await Prescription.count({
+        where: { doctorId },
+        distinct: true,
+        col: 'patientId'
+      });
+
+      // Completed this week
+      const completedThisWeek = await Prescription.count({
+        where: {
+          doctorId,
+          status: 'COMPLETED',
+          updatedAt: { [Op.gte]: startOfWeek }
+        }
+      });
+
+      // Completed this month
+      const completedThisMonth = await Prescription.count({
+        where: {
+          doctorId,
+          status: 'COMPLETED',
+          updatedAt: { [Op.gte]: startOfMonth }
+        }
+      });
+
+      // Results awaiting validation by this doctor
+      const newResultsCount = await Result.count({
+        where: { isValidated: false },
+        include: [{
+          model: PrescriptionExam,
+          as: 'prescriptionExam',
+          attributes: [],
+          required: true,
+          include: [{
+            model: Prescription,
+            as: 'prescription',
+            attributes: [],
+            required: true,
+            where: { doctorId }
+          }]
+        }]
+      });
+
+      res.json({
+        today: {
+          prescriptions: prescriptionsToday,
+          patients: patientsToday
+        },
+        pending: {
+          prescriptions: pendingPrescriptions,
+          awaitingResults: inProgressPrescriptions
+        },
+        totals: {
+          prescriptions: totalPrescriptions,
+          patients: distinctPatients,
+          completedThisWeek,
+          completedThisMonth
+        },
+        newResultsCount
+      });
+    } catch (error) {
+      logger.error('Get doctor stats error:', error);
+      res.status(500).json({ error: 'Erreur lors de la recuperation des statistiques' });
+    }
+  },
+
   /**
    * Statistiques pour un service (radiologie ou labo)
    * GET /api/stats/service

@@ -8,13 +8,11 @@ import {
   TextField,
   InputAdornment,
   List,
-  ListItem,
+  ListItemButton,
   ListItemText,
-  ListItemSecondaryAction,
   IconButton,
   Button,
   Chip,
-  Divider,
   Alert,
   CircularProgress,
   Dialog,
@@ -44,11 +42,12 @@ import {
   CheckCircle as ValidatedIcon,
   PictureAsPdf as PdfIcon,
   Image as ImageIcon,
-  Description as FileIcon
+  Description as FileIcon,
+  Preview as PreviewIcon
 } from '@mui/icons-material';
 import api from '../../services/api';
 
-const PatientRecord = () => {
+const PatientRecord = ({ initialPatient }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [selectedPatient, setSelectedPatient] = useState(null);
@@ -57,7 +56,16 @@ const PatientRecord = () => {
   const [searchLoading, setSearchLoading] = useState(false);
   const [activeTab, setActiveTab] = useState(0);
   const [linkDialog, setLinkDialog] = useState({ open: false, link: '', token: '' });
+  const [previewDialog, setPreviewDialog] = useState({ open: false, url: '', type: '', name: '' });
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
+
+  // Auto-load patient from parent component (e.g., "Voir details" in PatientSearch)
+  useEffect(() => {
+    if (initialPatient && initialPatient.id !== selectedPatient?.id) {
+      setSelectedPatient(initialPatient);
+      loadPatientRecord(initialPatient.id);
+    }
+  }, [initialPatient]);
 
   useEffect(() => {
     if (searchQuery.length >= 2) {
@@ -141,6 +149,18 @@ const PatientRecord = () => {
       window.URL.revokeObjectURL(url);
     } catch (err) {
       showSnackbar('Erreur lors du telechargement', 'error');
+    }
+  };
+
+  const handlePreviewResult = async (resultId, fileName, fileType) => {
+    try {
+      const response = await api.get(`/results/${resultId}/download`, {
+        responseType: 'blob'
+      });
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      setPreviewDialog({ open: true, url, type: fileType, name: fileName });
+    } catch {
+      showSnackbar('Erreur lors du chargement de l\'apercu', 'error');
     }
   };
 
@@ -252,9 +272,8 @@ const PatientRecord = () => {
             {searchResults.length > 0 && (
               <List sx={{ mt: 1, maxHeight: 300, overflow: 'auto' }}>
                 {searchResults.map((patient) => (
-                  <ListItem
+                  <ListItemButton
                     key={patient.id}
-                    button
                     onClick={() => handleSelectPatient(patient)}
                     sx={{ borderRadius: 1, mb: 0.5, '&:hover': { bgcolor: 'primary.50' } }}
                   >
@@ -273,7 +292,7 @@ const PatientRecord = () => {
                         </>
                       }
                     />
-                  </ListItem>
+                  </ListItemButton>
                 ))}
               </List>
             )}
@@ -455,6 +474,16 @@ const PatientRecord = () => {
                                               Valider
                                             </Button>
                                           )}
+                                          {(result.fileType === 'PDF' || result.fileType === 'IMAGE') && (
+                                            <Tooltip title="Apercu">
+                                              <IconButton
+                                                size="small"
+                                                onClick={() => handlePreviewResult(result.id, result.fileName, result.fileType)}
+                                              >
+                                                <PreviewIcon />
+                                              </IconButton>
+                                            </Tooltip>
+                                          )}
                                           <Tooltip title="Telecharger">
                                             <IconButton
                                               size="small"
@@ -481,6 +510,48 @@ const PatientRecord = () => {
           )}
         </Grid>
       </Grid>
+
+      {/* Dialog apercu resultat */}
+      <Dialog
+        open={previewDialog.open}
+        onClose={() => {
+          if (previewDialog.url) window.URL.revokeObjectURL(previewDialog.url);
+          setPreviewDialog({ open: false, url: '', type: '', name: '' });
+        }}
+        maxWidth="lg"
+        fullWidth
+      >
+        <DialogTitle>
+          Apercu - {previewDialog.name}
+        </DialogTitle>
+        <DialogContent sx={{ minHeight: 500 }}>
+          {previewDialog.type === 'IMAGE' ? (
+            <Box sx={{ textAlign: 'center' }}>
+              <img
+                src={previewDialog.url}
+                alt={previewDialog.name}
+                style={{ maxWidth: '100%', maxHeight: '70vh', objectFit: 'contain' }}
+              />
+            </Box>
+          ) : previewDialog.type === 'PDF' ? (
+            <iframe
+              src={previewDialog.url}
+              title={previewDialog.name}
+              width="100%"
+              height="600px"
+              style={{ border: 'none' }}
+            />
+          ) : null}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => {
+            if (previewDialog.url) window.URL.revokeObjectURL(previewDialog.url);
+            setPreviewDialog({ open: false, url: '', type: '', name: '' });
+          }}>
+            Fermer
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {/* Dialog lien portail */}
       <Dialog open={linkDialog.open} onClose={() => setLinkDialog({ open: false, link: '', token: '' })} maxWidth="sm" fullWidth>

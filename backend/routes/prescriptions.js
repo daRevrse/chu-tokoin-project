@@ -51,6 +51,11 @@ router.get('/number/:number',
   prescriptionController.getByNumber
 );
 
+router.get('/:id/pdf',
+  roleCheck('DOCTOR', 'ADMIN'),
+  prescriptionController.exportPDF
+);
+
 router.get('/:id',
   roleCheck('DOCTOR', 'CASHIER', 'RADIOLOGIST', 'LAB_TECHNICIAN', 'ADMIN'),
   prescriptionController.getById

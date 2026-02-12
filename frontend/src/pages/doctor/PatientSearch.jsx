@@ -19,11 +19,12 @@ import {
 import {
   Search as SearchIcon,
   Add as AddIcon,
-  Visibility as ViewIcon
+  Visibility as ViewIcon,
+  Edit as EditIcon
 } from '@mui/icons-material';
 import api from '../../services/api';
 
-const PatientSearch = ({ onSelectPatient, onCreatePrescription }) => {
+const PatientSearch = ({ onSelectPatient, onCreatePrescription, onEditPatient }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [patients, setPatients] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -34,7 +35,7 @@ const PatientSearch = ({ onSelectPatient, onCreatePrescription }) => {
 
     setLoading(true);
     try {
-      const response = await api.get(`/patients?search=${encodeURIComponent(searchTerm)}`);
+      const response = await api.get(`/patients?q=${encodeURIComponent(searchTerm)}`);
       setPatients(response.data.patients || []);
       setSearched(true);
     } catch (error) {
@@ -44,7 +45,7 @@ const PatientSearch = ({ onSelectPatient, onCreatePrescription }) => {
     }
   };
 
-  const handleKeyPress = (e) => {
+  const handleKeyDown = (e) => {
     if (e.key === 'Enter') {
       handleSearch();
     }
@@ -73,7 +74,7 @@ const PatientSearch = ({ onSelectPatient, onCreatePrescription }) => {
           placeholder="Nom, prenom, numero patient ou telephone..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          onKeyPress={handleKeyPress}
+          onKeyDown={handleKeyDown}
           InputProps={{
             startAdornment: (
               <InputAdornment position="start">
@@ -143,6 +144,17 @@ const PatientSearch = ({ onSelectPatient, onCreatePrescription }) => {
                           <ViewIcon />
                         </IconButton>
                       </Tooltip>
+                      {onEditPatient && (
+                        <Tooltip title="Modifier">
+                          <IconButton
+                            size="small"
+                            color="default"
+                            onClick={() => onEditPatient(patient)}
+                          >
+                            <EditIcon />
+                          </IconButton>
+                        </Tooltip>
+                      )}
                       <Tooltip title="Nouvelle prescription">
                         <IconButton
                           size="small"

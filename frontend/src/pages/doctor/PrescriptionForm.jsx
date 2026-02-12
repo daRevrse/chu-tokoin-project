@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Box,
   Paper,
@@ -12,7 +12,7 @@ import {
   Chip,
   Alert,
   List,
-  ListItem,
+  ListItemButton,
   ListItemText,
   ListItemSecondaryAction,
   IconButton,
@@ -20,13 +20,16 @@ import {
   AccordionSummary,
   AccordionDetails,
   Card,
-  CardContent
+  CardContent,
+  InputAdornment,
+  ListItem
 } from '@mui/material';
 import {
   ExpandMore as ExpandMoreIcon,
   Delete as DeleteIcon,
   Save as SaveIcon,
-  ArrowBack as BackIcon
+  ArrowBack as BackIcon,
+  Search as SearchIcon
 } from '@mui/icons-material';
 import api from '../../services/api';
 
@@ -37,6 +40,7 @@ const PrescriptionForm = ({ patient, onBack, onSuccess }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [examSearch, setExamSearch] = useState('');
 
   useEffect(() => {
     fetchExams();
@@ -52,11 +56,25 @@ const PrescriptionForm = ({ patient, onBack, onSuccess }) => {
         RADIOLOGY: radioRes.data.exams || [],
         LABORATORY: labRes.data.exams || []
       });
-    } catch (error) {
-      console.error('Erreur chargement examens:', error);
+    } catch (err) {
+      console.error('Erreur chargement examens:', err);
       setError('Erreur lors du chargement des examens');
     }
   };
+
+  // Filter exams by search term
+  const filteredExams = useMemo(() => {
+    if (!examSearch.trim()) return exams;
+    const term = examSearch.toLowerCase();
+    return {
+      RADIOLOGY: exams.RADIOLOGY.filter(e =>
+        e.name.toLowerCase().includes(term) || e.code.toLowerCase().includes(term)
+      ),
+      LABORATORY: exams.LABORATORY.filter(e =>
+        e.name.toLowerCase().includes(term) || e.code.toLowerCase().includes(term)
+      )
+    };
+  }, [exams, examSearch]);
 
   const handleExamToggle = (exam) => {
     const isSelected = selectedExams.find(e => e.id === exam.id);
@@ -99,9 +117,9 @@ const PrescriptionForm = ({ patient, onBack, onSuccess }) => {
       setTimeout(() => {
         if (onSuccess) onSuccess(response.data.prescription);
       }, 1500);
-    } catch (error) {
-      console.error('Erreur creation prescription:', error);
-      setError(error.response?.data?.message || 'Erreur lors de la creation de la prescription');
+    } catch (err) {
+      console.error('Erreur creation prescription:', err);
+      setError(err.response?.data?.message || 'Erreur lors de la creation de la prescription');
     } finally {
       setLoading(false);
     }
@@ -117,6 +135,48 @@ const PrescriptionForm = ({ patient, onBack, onSuccess }) => {
     }
     return age;
   };
+
+  const renderExamList = (examList) => (
+    <List dense>
+      {examList.map((exam) => (
+        <ListItemButton
+          key={exam.id}
+          onClick={() => handleExamToggle(exam)}
+          sx={{
+            bgcolor: selectedExams.find(e => e.id === exam.id)
+              ? 'primary.light'
+              : 'transparent',
+            borderRadius: 1,
+            mb: 0.5
+          }}
+        >
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={!!selectedExams.find(e => e.id === exam.id)}
+                onChange={() => handleExamToggle(exam)}
+              />
+            }
+            label=""
+            sx={{ mr: 0 }}
+            onClick={(e) => e.stopPropagation()}
+          />
+          <ListItemText
+            primary={exam.name}
+            secondary={`${exam.code} - ${exam.description || ''}`}
+          />
+          <Typography color="primary" fontWeight="medium">
+            {formatPrice(exam.price)}
+          </Typography>
+        </ListItemButton>
+      ))}
+      {examList.length === 0 && (
+        <Typography color="textSecondary" sx={{ py: 1, textAlign: 'center' }}>
+          Aucun examen trouve
+        </Typography>
+      )}
+    </List>
+  );
 
   return (
     <Box>
@@ -169,48 +229,32 @@ const PrescriptionForm = ({ patient, onBack, onSuccess }) => {
               Catalogue des Examens
             </Typography>
 
+            {/* Recherche d'examens */}
+            <TextField
+              fullWidth
+              size="small"
+              placeholder="Rechercher un examen par nom ou code..."
+              value={examSearch}
+              onChange={(e) => setExamSearch(e.target.value)}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon />
+                  </InputAdornment>
+                )
+              }}
+              sx={{ mb: 2 }}
+            />
+
             {/* Radiologie */}
             <Accordion defaultExpanded>
               <AccordionSummary expandIcon={<ExpandMoreIcon />}>
                 <Typography fontWeight="medium">
-                  Radiologie ({exams.RADIOLOGY.length} examens)
+                  Radiologie ({filteredExams.RADIOLOGY.length} examens)
                 </Typography>
               </AccordionSummary>
               <AccordionDetails>
-                <List dense>
-                  {exams.RADIOLOGY.map((exam) => (
-                    <ListItem
-                      key={exam.id}
-                      button
-                      onClick={() => handleExamToggle(exam)}
-                      sx={{
-                        bgcolor: selectedExams.find(e => e.id === exam.id)
-                          ? 'primary.light'
-                          : 'transparent',
-                        borderRadius: 1,
-                        mb: 0.5
-                      }}
-                    >
-                      <FormControlLabel
-                        control={
-                          <Checkbox
-                            checked={!!selectedExams.find(e => e.id === exam.id)}
-                            onChange={() => handleExamToggle(exam)}
-                          />
-                        }
-                        label=""
-                        sx={{ mr: 0 }}
-                      />
-                      <ListItemText
-                        primary={exam.name}
-                        secondary={`${exam.code} - ${exam.description || ''}`}
-                      />
-                      <Typography color="primary" fontWeight="medium">
-                        {formatPrice(exam.price)}
-                      </Typography>
-                    </ListItem>
-                  ))}
-                </List>
+                {renderExamList(filteredExams.RADIOLOGY)}
               </AccordionDetails>
             </Accordion>
 
@@ -218,44 +262,11 @@ const PrescriptionForm = ({ patient, onBack, onSuccess }) => {
             <Accordion defaultExpanded>
               <AccordionSummary expandIcon={<ExpandMoreIcon />}>
                 <Typography fontWeight="medium">
-                  Laboratoire ({exams.LABORATORY.length} examens)
+                  Laboratoire ({filteredExams.LABORATORY.length} examens)
                 </Typography>
               </AccordionSummary>
               <AccordionDetails>
-                <List dense>
-                  {exams.LABORATORY.map((exam) => (
-                    <ListItem
-                      key={exam.id}
-                      button
-                      onClick={() => handleExamToggle(exam)}
-                      sx={{
-                        bgcolor: selectedExams.find(e => e.id === exam.id)
-                          ? 'primary.light'
-                          : 'transparent',
-                        borderRadius: 1,
-                        mb: 0.5
-                      }}
-                    >
-                      <FormControlLabel
-                        control={
-                          <Checkbox
-                            checked={!!selectedExams.find(e => e.id === exam.id)}
-                            onChange={() => handleExamToggle(exam)}
-                          />
-                        }
-                        label=""
-                        sx={{ mr: 0 }}
-                      />
-                      <ListItemText
-                        primary={exam.name}
-                        secondary={`${exam.code} - ${exam.description || ''}`}
-                      />
-                      <Typography color="primary" fontWeight="medium">
-                        {formatPrice(exam.price)}
-                      </Typography>
-                    </ListItem>
-                  ))}
-                </List>
+                {renderExamList(filteredExams.LABORATORY)}
               </AccordionDetails>
             </Accordion>
           </Paper>
