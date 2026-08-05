@@ -23,6 +23,7 @@ import PatientPortal from './pages/portal/PatientPortal';
 
 // Admin Dashboard
 import AdminDashboard from './pages/admin/AdminDashboard';
+// import Screensaver from './components/common/Screensaver';
 
 // Composant pour les routes protegees avec layout
 const ProtectedWithLayout = ({ children, allowedRoles }) => (
@@ -37,8 +38,10 @@ function App() {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
+      
       <AuthProvider>
         <BrowserRouter>
+        {/* <Screensaver timeout={3000} /> */}
           <Routes>
             {/* Routes publiques */}
             <Route path="/login" element={<Login />} />

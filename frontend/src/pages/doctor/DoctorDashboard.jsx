@@ -27,18 +27,18 @@ import {
   InputAdornment
 } from '@mui/material';
 import {
-  PersonSearch as PersonSearchIcon,
-  Assignment as AssignmentIcon,
-  Add as AddIcon,
-  Folder as FolderIcon,
-  PersonAdd as PersonAddIcon,
-  Today as TodayIcon,
-  HourglassEmpty as PendingIcon,
-  ListAlt as TotalIcon,
-  FactCheck as ValidateIcon,
-  FilterList as FilterIcon,
-  Clear as ClearIcon,
-  Search as SearchIcon
+  PersonSearchRounded as PersonSearchIcon,
+  AssignmentRounded as AssignmentIcon,
+  AddRounded as AddIcon,
+  FolderRounded as FolderIcon,
+  PersonAddRounded as PersonAddIcon,
+  TodayRounded as TodayIcon,
+  HourglassEmptyRounded as PendingIcon,
+  ListAltRounded as TotalIcon,
+  FactCheckRounded as ValidateIcon,
+  FilterListRounded as FilterIcon,
+  ClearRounded as ClearIcon,
+  SearchRounded as SearchIcon
 } from '@mui/icons-material';
 import { useAuth } from '../../contexts/AuthContext';
 import api from '../../services/api';
@@ -188,10 +188,10 @@ const DoctorDashboard = () => {
   const getStatusLabel = (status) => {
     const labels = {
       PENDING: 'En attente',
-      PAID: 'Payee',
+      PAID: 'Payée',
       IN_PROGRESS: 'En cours',
-      COMPLETED: 'Terminee',
-      CANCELLED: 'Annulee'
+      COMPLETED: 'Terminée',
+      CANCELLED: 'Annulée'
     };
     return labels[status] || status;
   };
@@ -210,7 +210,22 @@ const DoctorDashboard = () => {
     });
   };
 
-  // Show PrescriptionDetail as a full view
+  // Styles communs pour les cartes
+  const cardStyle = {
+    elevation: 0,
+    sx: {
+      borderRadius: 4,
+      boxShadow: '0 4px 20px rgba(0,0,0,0.03)',
+      transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+      height: '100%',
+      '&:hover': {
+        transform: 'translateY(-4px)',
+        boxShadow: '0 12px 30px rgba(0,0,0,0.08)'
+      }
+    }
+  };
+
+  // Vues conditionnelles
   if (selectedPrescriptionId) {
     return (
       <Container maxWidth="xl" sx={{ py: 3 }}>
@@ -226,7 +241,6 @@ const DoctorDashboard = () => {
     );
   }
 
-  // Show PatientForm in edit mode
   if (editingPatient) {
     return (
       <Container maxWidth="xl" sx={{ py: 3 }}>
@@ -239,7 +253,6 @@ const DoctorDashboard = () => {
     );
   }
 
-  // Show PatientForm as a full view
   if (showPatientForm) {
     return (
       <Container maxWidth="xl" sx={{ py: 3 }}>
@@ -251,7 +264,6 @@ const DoctorDashboard = () => {
     );
   }
 
-  // Show PrescriptionForm as a full view
   if (showPrescriptionForm && selectedPatient) {
     return (
       <Container maxWidth="xl" sx={{ py: 3 }}>
@@ -269,72 +281,83 @@ const DoctorDashboard = () => {
 
   return (
     <Container maxWidth="xl" sx={{ py: 3 }}>
-      <Box sx={{ mb: 3 }}>
-        <Typography variant="h4" gutterBottom>
-          Tableau de Bord Medecin
+      <Box sx={{ mb: 4 }}>
+        <Typography variant="h4" fontWeight="bold" gutterBottom>
+          Espace Médecin
         </Typography>
-        <Typography color="textSecondary">
+        {/* <Typography variant="body1" color="textSecondary">
           Bienvenue, Dr. {user?.lastName} {user?.firstName}
-        </Typography>
+        </Typography> */}
       </Box>
 
-      {/* Statistiques */}
-      <Grid container spacing={3} sx={{ mb: 3 }}>
+      {/* Statistiques Modernisées */}
+      <Grid container spacing={3} sx={{ mb: 4 }}>
         <Grid item xs={12} sm={6} md={3}>
-          <Card sx={{ borderLeft: 4, borderColor: 'primary.main' }}>
-            <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-              <TodayIcon color="primary" sx={{ fontSize: 40 }} />
+          <Card {...cardStyle}>
+            <CardContent sx={{ display: 'flex', alignItems: 'center', p: 3 }}>
+              <Box sx={{ bgcolor: '#e3f2fd', width: 64, height: 64, borderRadius: 3, display: 'flex', alignItems: 'center', justifyContent: 'center', mr: 2 }}>
+                <TodayIcon sx={{ fontSize: 32, color: '#1976d2' }} />
+              </Box>
               <Box>
-                <Typography color="textSecondary" variant="body2">
-                  Prescriptions Aujourd'hui
-                </Typography>
-                <Typography variant="h3" color="primary">
+                <Typography variant="h4" fontWeight="bold" color="textPrimary">
                   {stats.today.prescriptions}
                 </Typography>
+                <Typography color="textSecondary" variant="body2" fontWeight="medium">
+                  Prescriptions (Aujourd'hui)
+                </Typography>
               </Box>
             </CardContent>
           </Card>
         </Grid>
+        
         <Grid item xs={12} sm={6} md={3}>
-          <Card sx={{ borderLeft: 4, borderColor: 'warning.main' }}>
-            <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-              <PendingIcon color="warning" sx={{ fontSize: 40 }} />
+          <Card {...cardStyle}>
+            <CardContent sx={{ display: 'flex', alignItems: 'center', p: 3 }}>
+              <Box sx={{ bgcolor: '#fff3e0', width: 64, height: 64, borderRadius: 3, display: 'flex', alignItems: 'center', justifyContent: 'center', mr: 2 }}>
+                <PendingIcon sx={{ fontSize: 32, color: '#ed6c02' }} />
+              </Box>
               <Box>
-                <Typography color="textSecondary" variant="body2">
-                  En Attente de Paiement
-                </Typography>
-                <Typography variant="h3" color="warning.main">
+                <Typography variant="h4" fontWeight="bold" color="textPrimary">
                   {stats.pending.prescriptions}
                 </Typography>
+                <Typography color="textSecondary" variant="body2" fontWeight="medium">
+                  En Attente de Paiement
+                </Typography>
               </Box>
             </CardContent>
           </Card>
         </Grid>
+
         <Grid item xs={12} sm={6} md={3}>
-          <Card sx={{ borderLeft: 4, borderColor: 'info.main' }}>
-            <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-              <ValidateIcon color="info" sx={{ fontSize: 40 }} />
+          <Card {...cardStyle}>
+            <CardContent sx={{ display: 'flex', alignItems: 'center', p: 3 }}>
+              <Box sx={{ bgcolor: '#e8f5e9', width: 64, height: 64, borderRadius: 3, display: 'flex', alignItems: 'center', justifyContent: 'center', mr: 2 }}>
+                <ValidateIcon sx={{ fontSize: 32, color: '#2e7d32' }} />
+              </Box>
               <Box>
-                <Typography color="textSecondary" variant="body2">
-                  Resultats a Valider
-                </Typography>
-                <Typography variant="h3" color="info.main">
+                <Typography variant="h4" fontWeight="bold" color="textPrimary">
                   {stats.newResultsCount}
                 </Typography>
+                <Typography color="textSecondary" variant="body2" fontWeight="medium">
+                  Résultats à Valider
+                </Typography>
               </Box>
             </CardContent>
           </Card>
         </Grid>
+
         <Grid item xs={12} sm={6} md={3}>
-          <Card sx={{ borderLeft: 4, borderColor: 'success.main' }}>
-            <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-              <TotalIcon color="success" sx={{ fontSize: 40 }} />
+          <Card {...cardStyle}>
+            <CardContent sx={{ display: 'flex', alignItems: 'center', p: 3 }}>
+              <Box sx={{ bgcolor: '#f3e5f5', width: 64, height: 64, borderRadius: 3, display: 'flex', alignItems: 'center', justifyContent: 'center', mr: 2 }}>
+                <TotalIcon sx={{ fontSize: 32, color: '#9c27b0' }} />
+              </Box>
               <Box>
-                <Typography color="textSecondary" variant="body2">
-                  Patients Distincts
-                </Typography>
-                <Typography variant="h3" color="success.main">
+                <Typography variant="h4" fontWeight="bold" color="textPrimary">
                   {stats.totals.patients}
+                </Typography>
+                <Typography color="textSecondary" variant="body2" fontWeight="medium">
+                  Patients Distincts
                 </Typography>
               </Box>
             </CardContent>
@@ -343,40 +366,34 @@ const DoctorDashboard = () => {
       </Grid>
 
       {/* Onglets */}
-      <Paper sx={{ mb: 3 }}>
+      <Paper elevation={0} sx={{ mb: 4, borderRadius: 4, boxShadow: '0 4px 20px rgba(0,0,0,0.03)', overflow: 'hidden' }}>
         <Tabs
           value={activeTab}
           onChange={(e, v) => setActiveTab(v)}
           indicatorColor="primary"
           textColor="primary"
+          sx={{
+            px: 2,
+            pt: 1,
+            '& .MuiTab-root': { fontWeight: 'bold', textTransform: 'none', minHeight: 60, fontSize: '1rem' }
+          }}
         >
-          <Tab
-            icon={<PersonSearchIcon />}
-            label="Rechercher Patient"
-            iconPosition="start"
-          />
-          <Tab
-            icon={<AssignmentIcon />}
-            label="Mes Prescriptions"
-            iconPosition="start"
-          />
-          <Tab
-            icon={<FolderIcon />}
-            label="Dossiers Patients"
-            iconPosition="start"
-          />
+          <Tab icon={<PersonSearchIcon />} label="Rechercher Patient" iconPosition="start" />
+          <Tab icon={<AssignmentIcon />} label="Mes Prescriptions" iconPosition="start" />
+          <Tab icon={<FolderIcon />} label="Dossiers Patients" iconPosition="start" />
         </Tabs>
       </Paper>
 
       {/* Contenu des onglets */}
       {activeTab === 0 && (
-        <Paper sx={{ p: 3 }}>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-            <Typography variant="h6">Rechercher un Patient</Typography>
+        <Paper elevation={0} sx={{ p: 4, borderRadius: 4, boxShadow: '0 4px 20px rgba(0,0,0,0.03)' }}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+            {/* <Typography variant="h6" fontWeight="bold">Rechercher un Patient</Typography> */}
             <Button
               variant="outlined"
               startIcon={<PersonAddIcon />}
               onClick={() => setShowPatientForm(true)}
+              sx={{ borderRadius: 2, textTransform: 'none' }}
             >
               Nouveau Patient
             </Button>
@@ -390,36 +407,40 @@ const DoctorDashboard = () => {
       )}
 
       {activeTab === 1 && (
-        <Paper sx={{ p: 3 }}>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-            <Typography variant="h6">
+        <Paper elevation={0} sx={{ p: 4, borderRadius: 4, boxShadow: '0 4px 20px rgba(0,0,0,0.03)' }}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+            <Typography variant="h6" fontWeight="bold">
               Mes Prescriptions
             </Typography>
             <Button
               variant="contained"
               startIcon={<AddIcon />}
               onClick={() => setActiveTab(0)}
+              sx={{ borderRadius: 2, textTransform: 'none', boxShadow: 'none' }}
             >
               Nouvelle Prescription
             </Button>
           </Box>
 
           {/* Filtres */}
-          <Box sx={{ display: 'flex', gap: 2, mb: 2, flexWrap: 'wrap', alignItems: 'center' }}>
-            <FilterIcon color="action" />
+          <Box sx={{ display: 'flex', gap: 2, mb: 3, flexWrap: 'wrap', alignItems: 'center' }}>
+            <Box sx={{ bgcolor: '#f5f7fb', p: 1, borderRadius: 2, display: 'flex' }}>
+              <FilterIcon color="action" />
+            </Box>
             <FormControl size="small" sx={{ minWidth: 150 }}>
               <InputLabel>Statut</InputLabel>
               <Select
                 value={filters.status}
                 label="Statut"
                 onChange={(e) => handleFilterChange('status', e.target.value)}
+                sx={{ borderRadius: 2 }}
               >
                 <MenuItem value="">Tous</MenuItem>
                 <MenuItem value="PENDING">En attente</MenuItem>
-                <MenuItem value="PAID">Payee</MenuItem>
+                <MenuItem value="PAID">Payée</MenuItem>
                 <MenuItem value="IN_PROGRESS">En cours</MenuItem>
-                <MenuItem value="COMPLETED">Terminee</MenuItem>
-                <MenuItem value="CANCELLED">Annulee</MenuItem>
+                <MenuItem value="COMPLETED">Terminée</MenuItem>
+                <MenuItem value="CANCELLED">Annulée</MenuItem>
               </Select>
             </FormControl>
             <TextField
@@ -429,7 +450,7 @@ const DoctorDashboard = () => {
               value={filters.startDate}
               onChange={(e) => handleFilterChange('startDate', e.target.value)}
               InputLabelProps={{ shrink: true }}
-              sx={{ width: 160 }}
+              sx={{ width: 160, '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
             />
             <TextField
               size="small"
@@ -438,7 +459,7 @@ const DoctorDashboard = () => {
               value={filters.endDate}
               onChange={(e) => handleFilterChange('endDate', e.target.value)}
               InputLabelProps={{ shrink: true }}
-              sx={{ width: 160 }}
+              sx={{ width: 160, '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
             />
             <TextField
               size="small"
@@ -452,13 +473,14 @@ const DoctorDashboard = () => {
                   </InputAdornment>
                 )
               }}
-              sx={{ width: 200 }}
+              sx={{ width: 220, '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
             />
             {hasActiveFilters && (
               <Button
                 size="small"
                 startIcon={<ClearIcon />}
                 onClick={handleClearFilters}
+                sx={{ borderRadius: 2, textTransform: 'none', color: 'text.secondary' }}
               >
                 Effacer
               </Button>
@@ -466,42 +488,42 @@ const DoctorDashboard = () => {
           </Box>
 
           {loading ? (
-            <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+            <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
               <CircularProgress />
             </Box>
           ) : (
             <>
-              <TableContainer sx={{ overflowX: 'auto' }}>
+              <TableContainer sx={{ borderRadius: 3, border: '1px solid', borderColor: 'divider' }}>
                 <Table>
-                  <TableHead>
+                  <TableHead sx={{ bgcolor: '#f8fafc' }}>
                     <TableRow>
-                      <TableCell>N° Prescription</TableCell>
-                      <TableCell>Patient</TableCell>
-                      <TableCell>Date</TableCell>
-                      <TableCell>Examens</TableCell>
-                      <TableCell>Montant</TableCell>
-                      <TableCell>Statut</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold' }}>N° Prescription</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold' }}>Patient</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold' }}>Date</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold' }}>Examens</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold' }}>Montant</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold' }}>Statut</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
                     {prescriptions.length === 0 ? (
                       <TableRow>
                         <TableCell colSpan={6} align="center">
-                          <Box sx={{ py: 4 }}>
-                            <AssignmentIcon sx={{ fontSize: 48, color: 'text.disabled', mb: 1 }} />
+                          <Box sx={{ py: 6 }}>
+                            <AssignmentIcon sx={{ fontSize: 60, color: 'text.disabled', mb: 2 }} />
                             <Typography color="textSecondary">
                               {hasActiveFilters
                                 ? 'Aucune prescription ne correspond aux filtres'
-                                : 'Aucune prescription trouvee'}
+                                : 'Aucune prescription trouvée'}
                             </Typography>
                             {!hasActiveFilters && (
                               <Button
                                 variant="outlined"
                                 size="small"
-                                sx={{ mt: 1 }}
+                                sx={{ mt: 2, borderRadius: 2, textTransform: 'none' }}
                                 onClick={() => setActiveTab(0)}
                               >
-                                Creer une prescription
+                                Créer une prescription
                               </Button>
                             )}
                           </Box>
@@ -512,7 +534,7 @@ const DoctorDashboard = () => {
                         <TableRow
                           key={prescription.id}
                           hover
-                          sx={{ cursor: 'pointer' }}
+                          sx={{ cursor: 'pointer', '&:last-child td, &:last-child th': { border: 0 } }}
                           onClick={() => setSelectedPrescriptionId(prescription.id)}
                         >
                           <TableCell>
@@ -521,22 +543,23 @@ const DoctorDashboard = () => {
                               size="small"
                               color="primary"
                               variant="outlined"
+                              sx={{ fontWeight: 'bold' }}
                             />
                           </TableCell>
                           <TableCell>
-                            <Typography fontWeight="medium">
+                            <Typography fontWeight="bold" variant="body2">
                               {prescription.patient?.lastName} {prescription.patient?.firstName}
                             </Typography>
                             <Typography variant="caption" color="textSecondary">
                               {prescription.patient?.patientNumber}
                             </Typography>
                           </TableCell>
-                          <TableCell>{formatDate(prescription.createdAt)}</TableCell>
+                          <TableCell sx={{ color: 'text.secondary' }}>{formatDate(prescription.createdAt)}</TableCell>
                           <TableCell>
-                            {prescription.prescriptionExams?.length || 0} examen(s)
+                            <Chip size="small" label={`${prescription.prescriptionExams?.length || 0} examen(s)`} />
                           </TableCell>
                           <TableCell>
-                            <Typography fontWeight="medium" color="primary">
+                            <Typography fontWeight="bold" color="primary">
                               {formatPrice(prescription.totalAmount)}
                             </Typography>
                           </TableCell>
@@ -545,6 +568,7 @@ const DoctorDashboard = () => {
                               label={getStatusLabel(prescription.status)}
                               color={getStatusColor(prescription.status)}
                               size="small"
+                              sx={{ fontWeight: 'bold' }}
                             />
                           </TableCell>
                         </TableRow>
@@ -561,8 +585,9 @@ const DoctorDashboard = () => {
                 rowsPerPage={rowsPerPage}
                 onRowsPerPageChange={handleRowsPerPageChange}
                 rowsPerPageOptions={[10, 20, 50]}
-                labelRowsPerPage="Lignes par page"
+                labelRowsPerPage="Lignes par page :"
                 labelDisplayedRows={({ from, to, count }) => `${from}-${to} sur ${count}`}
+                sx={{ mt: 2 }}
               />
             </>
           )}
@@ -570,7 +595,9 @@ const DoctorDashboard = () => {
       )}
 
       {activeTab === 2 && (
-        <PatientRecord initialPatient={selectedPatient} />
+        <Box sx={{ mt: 2 }}>
+          <PatientRecord initialPatient={selectedPatient} />
+        </Box>
       )}
     </Container>
   );

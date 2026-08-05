@@ -5,6 +5,7 @@ import { Block, ArrowBack } from '@mui/icons-material';
 
 const Unauthorized = () => {
   const navigate = useNavigate();
+  const rootBackgroundImage = '/images/bg.png';
 
   return (
     <Box
@@ -13,7 +14,11 @@ const Unauthorized = () => {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: 'background.default',
+        backgroundColor: '#f5f7fb',
+        backgroundImage: `url(${rootBackgroundImage})`,
+        backgroundSize: 'contain',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'repeat',
         padding: 2
       }}
     >

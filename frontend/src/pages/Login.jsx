@@ -2,24 +2,32 @@ import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
   Box,
-  Card,
-  CardContent,
   TextField,
   Button,
   Typography,
   Alert,
   CircularProgress,
   InputAdornment,
-  IconButton
+  IconButton,
+  Checkbox,
+  FormControlLabel,
+  Link,
+  Divider,
+  Grid
 } from '@mui/material';
 import {
   Email,
   Lock,
   Visibility,
   VisibilityOff,
-  LocalHospital
+  ArrowForward,
+  HealthAndSafety,
+  Security,
+  AccessTime,
+  BarChart,
+  VerifiedUserOutlined
 } from '@mui/icons-material';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../contexts/AuthContext'; // Assurez-vous que ce chemin est correct
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -31,8 +39,10 @@ const Login = () => {
   const { login } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const backgroundImage = '/images/background-login.jpg';
+  const rootBackgroundImage = '/images/bg.png';
 
-  // Redirection apres connexion
+  // Redirection après connexion
   const getRedirectPath = (role) => {
     switch (role) {
       case 'DOCTOR':
@@ -56,8 +66,6 @@ const Login = () => {
 
     try {
       const user = await login(email, password);
-
-      // Rediriger vers la page d'origine ou le dashboard selon le role
       const from = location.state?.from?.pathname;
       const redirectPath = from || getRedirectPath(user.role);
       navigate(redirectPath, { replace: true });
@@ -75,24 +83,129 @@ const Login = () => {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: 'background.default',
-        padding: 2
+        backgroundColor: '#f5f7fb',
+        backgroundImage: `url(${rootBackgroundImage})`,
+        backgroundSize: 'contain',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'repeat',
+        p: 2
       }}
     >
-      <Card sx={{ maxWidth: 420, width: '100%' }}>
-        <CardContent sx={{ p: 4 }}>
-          {/* Logo et titre */}
-          <Box sx={{ textAlign: 'center', mb: 4 }}>
-            <LocalHospital sx={{ fontSize: 56, color: 'primary.main', mb: 1 }} />
-            <Typography variant="h4" component="h1" gutterBottom>
-              CHU Tokoin
+      <Box
+        sx={{
+          display: 'flex',
+          flexDirection: { xs: 'column', md: 'row' },
+          width: '1100px',
+          maxWidth: '100%',
+          minHeight: '600px',
+          borderRadius: 4,
+          overflow: 'hidden',
+          boxShadow: '0px 10px 30px rgba(0,0,0,0.1)',
+          backgroundColor: '#ffffff'
+        }}
+      >
+        {/* --- PANNEAU GAUCHE (Présentation) --- */}
+        <Box
+          sx={{
+            flex: 1,
+            backgroundImage: `linear-gradient(135deg, rgba(13, 71, 161, 0.85) 0%, rgba(21, 101, 192, 0.85) 100%), url(${backgroundImage})`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            color: 'white',
+            p: 6,
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'space-between',
+            position: 'relative',
+          }}
+        >
+          {/* Logo H360 */}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <img src="logo-nobg.png" alt="Logo" style={{ width: 50, height: 50 }} />
+            <Box>
+              <Typography variant="h6" fontWeight="bold" sx={{ lineHeight: 1 }}>
+                H360
+              </Typography>
+              <Typography variant="caption" sx={{ opacity: 0.8 }}>
+                Solution Hospitalière Intelligente
+              </Typography>
+            </Box>
+          </Box>
+
+          {/* Slogan */}
+          <Box sx={{ my: 4 }}>
+            <Typography variant="h3" fontWeight="bold" gutterBottom sx={{ lineHeight: 1.2 }}>
+              Gérez. Suivez.<br />Optimisez.
             </Typography>
-            <Typography variant="body1" color="textSecondary">
-              Systeme de Gestion des Examens
+            <Typography variant="body1" sx={{ opacity: 0.9, mt: 2, maxWidth: '80%' }}>
+              Une solution complète pour la gestion efficace des examens.
             </Typography>
           </Box>
 
-          {/* Message d'erreur */}
+          {/* Points forts (Footer gauche) */}
+          <Grid container spacing={2} sx={{ mt: 'auto' }}>
+            <Grid item xs={4}>
+              <Security sx={{ mb: 1, fontSize: 28 }} />
+              <Typography variant="subtitle2" fontWeight="bold">Sécurisé</Typography>
+              <Typography variant="caption" sx={{ opacity: 0.8, display: 'block' }}>
+                Vos données<br />sont protégées
+              </Typography>
+            </Grid>
+            <Grid item xs={4}>
+              <AccessTime sx={{ mb: 1, fontSize: 28 }} />
+              <Typography variant="subtitle2" fontWeight="bold">Rapide</Typography>
+              <Typography variant="caption" sx={{ opacity: 0.8, display: 'block' }}>
+                Accédez rapidement<br />à l'essentiel
+              </Typography>
+            </Grid>
+            <Grid item xs={4}>
+              <BarChart sx={{ mb: 1, fontSize: 28 }} />
+              <Typography variant="subtitle2" fontWeight="bold">Performant</Typography>
+              <Typography variant="caption" sx={{ opacity: 0.8, display: 'block' }}>
+                Des outils pour des<br />décisions éclairées
+              </Typography>
+            </Grid>
+          </Grid>
+        </Box>
+
+        {/* --- PANNEAU DROIT (Formulaire) --- */}
+        <Box
+          sx={{
+            flex: 1,
+            p: { xs: 4, md: 8 },
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'center'
+          }}
+        >
+          {/* En-tête formulaire */}
+          <Box sx={{ textAlign: 'center', mb: 4 }}>
+            <Box
+              sx={{
+                bgcolor: '#1976d2',
+                color: 'white',
+                width: 60,
+                height: 60,
+                borderRadius: 2,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                margin: '0 auto',
+                mb: 2
+              }}
+            >
+              <HealthAndSafety sx={{ fontSize: 40 }} />
+            </Box>
+            <Typography variant="h5" component="h1" fontWeight="bold" gutterBottom>
+              CHU Tokoin
+            </Typography>
+            <Typography variant="body2" color="textSecondary" sx={{ mb: 1 }}>
+              Système de Gestion des Examens
+            </Typography>
+            <Box sx={{ width: 40, height: 3, bgcolor: '#1976d2', margin: '0 auto', borderRadius: 1 }} />
+          </Box>
+
+          {/* Gestion des erreurs */}
           {error && (
             <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError('')}>
               {error}
@@ -101,38 +214,45 @@ const Login = () => {
 
           {/* Formulaire */}
           <form onSubmit={handleSubmit}>
+            <Typography variant="body2" color="textSecondary" sx={{ mb: 1 }}>
+              Email *
+            </Typography>
             <TextField
               fullWidth
-              label="Email"
+              variant="outlined"
+              placeholder="Entrez votre email"
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              margin="normal"
               required
               autoFocus
               autoComplete="email"
+              sx={{ mb: 3 }}
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
-                    <Email color="action" />
+                    <Email color="action" fontSize="small" />
                   </InputAdornment>
                 )
               }}
             />
 
+            <Typography variant="body2" color="textSecondary" sx={{ mb: 1 }}>
+              Mot de passe *
+            </Typography>
             <TextField
               fullWidth
-              label="Mot de passe"
+              variant="outlined"
+              placeholder="Entrez votre mot de passe"
               type={showPassword ? 'text' : 'password'}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              margin="normal"
               required
               autoComplete="current-password"
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
-                    <Lock color="action" />
+                    <Lock color="action" fontSize="small" />
                   </InputAdornment>
                 ),
                 endAdornment: (
@@ -141,21 +261,35 @@ const Login = () => {
                       onClick={() => setShowPassword(!showPassword)}
                       edge="end"
                       aria-label="toggle password visibility"
+                      size="small"
                     >
-                      {showPassword ? <VisibilityOff /> : <Visibility />}
+                      {showPassword ? <VisibilityOff fontSize="small" /> : <Visibility fontSize="small" />}
                     </IconButton>
                   </InputAdornment>
                 )
               }}
             />
 
+            {/* Options secondaires */}
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 1, mb: 4 }}>
+              <FormControlLabel
+                control={<Checkbox size="small" color="primary" />}
+                label={<Typography variant="body2" color="textSecondary">Se souvenir de moi</Typography>}
+              />
+              <Link href="#" variant="body2" underline="hover" color="primary">
+                Mot de passe oublié ?
+              </Link>
+            </Box>
+
+            {/* Bouton de soumission */}
             <Button
               type="submit"
               fullWidth
               variant="contained"
               size="large"
+              endIcon={!loading && <ArrowForward />}
               disabled={loading || !email || !password}
-              sx={{ mt: 3, mb: 2, py: 1.5 }}
+              sx={{ py: 1.5, borderRadius: 2, textTransform: 'none', fontSize: '1rem' }}
             >
               {loading ? (
                 <CircularProgress size={24} color="inherit" />
@@ -165,12 +299,19 @@ const Login = () => {
             </Button>
           </form>
 
-          {/* Footer */}
-          <Typography variant="caption" color="textSecondary" align="center" display="block" sx={{ mt: 3 }}>
-            Centre Hospitalier Universitaire de Tokoin - Lome, Togo
-          </Typography>
-        </CardContent>
-      </Card>
+          {/* Séparateur et Footer */}
+          <Divider sx={{ my: 4 }}>
+            {/* <Typography variant="caption" color="textSecondary">ou</Typography> */}
+          </Divider>
+          
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1, color: 'text.secondary' }}>
+            <VerifiedUserOutlined fontSize="small" color="info" />
+            <Typography variant="caption" align="center">
+              Accès réservé au personnel autorisé
+            </Typography>
+          </Box>
+        </Box>
+      </Box>
     </Box>
   );
 };

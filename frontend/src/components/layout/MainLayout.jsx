@@ -21,14 +21,15 @@ import {
   useMediaQuery
 } from '@mui/material';
 import {
-  Menu as MenuIcon,
-  Dashboard as DashboardIcon,
-  Payment as PaymentIcon,
-  LocalHospital as HospitalIcon,
-  Science as ScienceIcon,
-  AdminPanelSettings as AdminIcon,
-  Logout as LogoutIcon,
-  AccountCircle as AccountIcon
+  MenuRounded,
+  DashboardRounded,
+  PointOfSaleRounded,
+  MedicalServicesRounded,
+  ScienceRounded,
+  AdminPanelSettingsRounded,
+  LogoutRounded,
+  NotificationsNoneRounded,
+  BiotechRounded
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
@@ -84,7 +85,7 @@ const MainLayout = ({ children }) => {
   const getRoleLabel = (role) => {
     const labels = {
       ADMIN: 'Administrateur',
-      DOCTOR: 'Medecin',
+      DOCTOR: 'Médecin',
       CASHIER: 'Caissier',
       RADIOLOGIST: 'Radiologue',
       LAB_TECHNICIAN: 'Laborantin'
@@ -105,207 +106,154 @@ const MainLayout = ({ children }) => {
 
   const getMenuItems = () => {
     const baseItems = [
-      { text: 'Tableau de bord', icon: <DashboardIcon />, path: '/dashboard' }
+      { text: 'Tableau de bord', icon: <DashboardRounded />, path: '/dashboard' }
     ];
 
     if (user?.role === 'DOCTOR' || user?.role === 'ADMIN') {
-      baseItems.push({
-        text: 'Espace Medecin',
-        icon: <HospitalIcon />,
-        path: '/doctor'
-      });
+      baseItems.push({ text: 'Espace Médecin', icon: <MedicalServicesRounded />, path: '/doctor' });
     }
-
     if (user?.role === 'CASHIER' || user?.role === 'ADMIN') {
-      baseItems.push({
-        text: 'Espace Caisse',
-        icon: <PaymentIcon />,
-        path: '/cashier'
-      });
+      baseItems.push({ text: 'Espace Caisse', icon: <PointOfSaleRounded />, path: '/cashier' });
     }
-
     if (user?.role === 'RADIOLOGIST' || user?.role === 'LAB_TECHNICIAN' || user?.role === 'ADMIN') {
-      baseItems.push({
-        text: 'Espace Service',
-        icon: <ScienceIcon />,
-        path: '/service'
-      });
+      baseItems.push({ text: 'Espace Service', icon: <ScienceRounded />, path: '/service' });
     }
-
     if (user?.role === 'ADMIN') {
-      baseItems.push({
-        text: 'Administration',
-        icon: <AdminIcon />,
-        path: '/admin'
-      });
+      baseItems.push({ text: 'Administration', icon: <AdminPanelSettingsRounded />, path: '/admin' });
     }
-
     return baseItems;
   };
 
-  const drawer = (
-    <Box>
-      <Box sx={{ p: 2, textAlign: 'center', bgcolor: 'primary.main', color: 'white' }}>
-        <Typography variant="h6" fontWeight="bold">
-          CHU TOKOIN
-        </Typography>
-        <Typography variant="caption">
-          Systeme de Gestion des Examens
-        </Typography>
-      </Box>
-
-      <Box sx={{ p: 2 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-          <Avatar sx={{ bgcolor: 'primary.main' }}>
-            {user?.firstName?.charAt(0)}{user?.lastName?.charAt(0)}
-          </Avatar>
-          <Box>
-            <Typography fontWeight="medium">
-              {user?.firstName} {user?.lastName}
-            </Typography>
-            <Chip
-              label={getRoleLabel(user?.role)}
-              color={getRoleColor(user?.role)}
-              size="small"
-            />
-          </Box>
+  const drawerContent = (
+    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+      {/* En-tête Sidebar (Logo H360) */}
+      <Box sx={{ p: 3, display: 'flex', alignItems: 'center', gap: 2 }}>
+        <img src="logo-black.png" alt="Logo" style={{ width: 50, height: 50 }} />
+        <Box>
+          <Typography variant="subtitle1" fontWeight="bold" sx={{ lineHeight: 1.2 }}>
+            H360
+          </Typography>
+          <Typography variant="caption" color="textSecondary">
+            CHU Tokoin
+          </Typography>
         </Box>
       </Box>
 
-      <Divider />
+      {/* Profil Utilisateur */}
+      <Box sx={{ px: 3, pb: 3, textAlign: 'center' }}>
+        <Avatar 
+          sx={{ width: 64, height: 64, margin: '0 auto', mb: 1, bgcolor: 'primary.main', fontSize: '1.5rem', fontWeight: 'bold' }}
+        >
+          {user?.firstName?.charAt(0)}{user?.lastName?.charAt(0)}
+        </Avatar>
+        <Typography variant="subtitle1" fontWeight="bold">
+          {user?.firstName} {user?.lastName}
+        </Typography>
+        <Chip 
+          label={getRoleLabel(user?.role)} 
+          size="small" 
+          color={getRoleColor(user?.role)} 
+          sx={{ mt: 0.5, borderRadius: 1, fontWeight: 'bold' }} 
+        />
+      </Box>
 
-      <List>
-        {getMenuItems().map((item) => (
-          <ListItem key={item.path} disablePadding>
-            <ListItemButton
-              selected={location.pathname.startsWith(item.path)}
-              onClick={() => {
-                navigate(item.path);
-                if (isMobile) setMobileOpen(false);
-              }}
-              sx={{
-                '&.Mui-selected': {
-                  bgcolor: 'primary.light',
-                  borderRight: 3,
-                  borderColor: 'primary.main'
-                }
-              }}
-            >
-              <ListItemIcon sx={{ color: location.pathname.startsWith(item.path) ? 'primary.main' : 'inherit' }}>
-                {item.path === '/doctor' && doctorBadge > 0 ? (
-                  <Badge badgeContent={doctorBadge} color="error" max={99}>
-                    {item.icon}
-                  </Badge>
-                ) : item.icon}
-              </ListItemIcon>
-              <ListItemText primary={item.text} />
-            </ListItemButton>
-          </ListItem>
-        ))}
+      <Divider sx={{ mb: 2, mx: 2 }} />
+
+      {/* Navigation */}
+      <List sx={{ px: 2, flexGrow: 1 }}>
+        {getMenuItems().map((item) => {
+          const isActive = location.pathname.startsWith(item.path);
+          return (
+            <ListItem key={item.path} disablePadding sx={{ mb: 1 }}>
+              <ListItemButton
+                onClick={() => {
+                  navigate(item.path);
+                  if (isMobile) setMobileOpen(false);
+                }}
+                sx={{
+                  borderRadius: 2,
+                  bgcolor: isActive ? '#e3f2fd' : 'transparent',
+                  color: isActive ? '#1976d2' : 'text.primary',
+                  '&:hover': { bgcolor: isActive ? '#e3f2fd' : '#f5f5f5' }
+                }}
+              >
+                <ListItemIcon sx={{ color: isActive ? '#1976d2' : 'inherit', minWidth: 40 }}>
+                  {item.path === '/doctor' && doctorBadge > 0 ? (
+                    <Badge badgeContent={doctorBadge} color="error" max={99}>
+                      {item.icon}
+                    </Badge>
+                  ) : item.icon}
+                </ListItemIcon>
+                <ListItemText 
+                  primary={item.text} 
+                  primaryTypographyProps={{ fontWeight: isActive ? 'bold' : 'medium' }} 
+                />
+              </ListItemButton>
+            </ListItem>
+          );
+        })}
       </List>
 
-      <Divider />
-
-      <List>
+      <Box sx={{ p: 2 }}>
         <ListItem disablePadding>
-          <ListItemButton onClick={handleLogout}>
-            <ListItemIcon>
-              <LogoutIcon />
+          <ListItemButton onClick={handleLogout} sx={{ borderRadius: 2, color: 'text.secondary', '&:hover': { color: 'error.main', bgcolor: '#ffebee' } }}>
+            <ListItemIcon sx={{ color: 'inherit', minWidth: 40 }}>
+              <LogoutRounded />
             </ListItemIcon>
-            <ListItemText primary="Deconnexion" />
+            <ListItemText primary="Déconnexion" primaryTypographyProps={{ fontWeight: 'medium' }} />
           </ListItemButton>
         </ListItem>
-      </List>
+      </Box>
     </Box>
   );
 
   return (
-    <Box sx={{ display: 'flex' }}>
-      <AppBar
-        position="fixed"
-        sx={{
-          width: { md: `calc(100% - ${drawerWidth}px)` },
-          ml: { md: `${drawerWidth}px` }
-        }}
-      >
+    <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: '#f5f7fb' }}>
+      
+      {/* AppBar Transparente pour mobile et actions */}
+      <AppBar position="fixed" elevation={0} sx={{ width: { md: `calc(100% - ${drawerWidth}px)` }, ml: { md: `${drawerWidth}px` }, bgcolor: 'transparent', backdropFilter: 'blur(8px)' }}>
         <Toolbar>
-          <IconButton
-            color="inherit"
-            edge="start"
-            onClick={handleDrawerToggle}
-            sx={{ mr: 2, display: { md: 'none' } }}
-          >
-            <MenuIcon />
+          <IconButton color="action" edge="start" onClick={handleDrawerToggle} sx={{ mr: 2, display: { md: 'none' } }}>
+            <MenuRounded />
           </IconButton>
-
-          <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-            CHU Tokoin - Gestion des Examens
-          </Typography>
-
-          <IconButton color="inherit" onClick={handleMenuOpen}>
-            <AccountIcon />
+          <Box sx={{ flexGrow: 1 }} />
+          <IconButton sx={{ bgcolor: 'white', boxShadow: '0 2px 12px rgba(0,0,0,0.05)', mr: 2 }}>
+            <NotificationsNoneRounded color="action" />
           </IconButton>
-
-          <Menu
-            anchorEl={anchorEl}
-            open={Boolean(anchorEl)}
-            onClose={handleMenuClose}
+          <Avatar 
+            onClick={handleMenuOpen} 
+            sx={{ bgcolor: 'primary.main', cursor: 'pointer', width: 40, height: 40, boxShadow: '0 2px 12px rgba(0,0,0,0.1)' }}
           >
-            <MenuItem disabled>
-              <Typography variant="body2">
-                {user?.email}
-              </Typography>
-            </MenuItem>
+            {user?.firstName?.charAt(0)}{user?.lastName?.charAt(0)}
+          </Avatar>
+          <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={handleMenuClose} transformOrigin={{ horizontal: 'right', vertical: 'top' }} anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}>
+            <MenuItem disabled><Typography variant="body2">{user?.email}</Typography></MenuItem>
             <Divider />
-            <MenuItem onClick={handleLogout}>
-              <ListItemIcon>
-                <LogoutIcon fontSize="small" />
-              </ListItemIcon>
-              Deconnexion
-            </MenuItem>
+            <MenuItem onClick={handleLogout}><ListItemIcon><LogoutRounded fontSize="small" /></ListItemIcon>Déconnexion</MenuItem>
           </Menu>
         </Toolbar>
       </AppBar>
 
-      <Box
-        component="nav"
-        sx={{ width: { md: drawerWidth }, flexShrink: { md: 0 } }}
-      >
+      <Box component="nav" sx={{ width: { md: drawerWidth }, flexShrink: { md: 0 } }}>
         <Drawer
           variant="temporary"
           open={mobileOpen}
           onClose={handleDrawerToggle}
           ModalProps={{ keepMounted: true }}
-          sx={{
-            display: { xs: 'block', md: 'none' },
-            '& .MuiDrawer-paper': { boxSizing: 'border-box', width: drawerWidth }
-          }}
+          sx={{ display: { xs: 'block', md: 'none' }, '& .MuiDrawer-paper': { boxSizing: 'border-box', width: drawerWidth, borderRight: 'none' } }}
         >
-          {drawer}
+          {drawerContent}
         </Drawer>
-
         <Drawer
           variant="permanent"
-          sx={{
-            display: { xs: 'none', md: 'block' },
-            '& .MuiDrawer-paper': { boxSizing: 'border-box', width: drawerWidth }
-          }}
           open
+          sx={{ display: { xs: 'none', md: 'block' }, '& .MuiDrawer-paper': { boxSizing: 'border-box', width: drawerWidth, borderRight: 'none', boxShadow: '4px 0 24px rgba(0,0,0,0.05)' } }}
         >
-          {drawer}
+          {drawerContent}
         </Drawer>
       </Box>
 
-      <Box
-        component="main"
-        sx={{
-          flexGrow: 1,
-          width: { md: `calc(100% - ${drawerWidth}px)` },
-          minHeight: '100vh',
-          bgcolor: 'grey.100'
-        }}
-      >
-        <Toolbar />
+      <Box component="main" sx={{ flexGrow: 1, p: { xs: 2, md: 4 }, mt: { xs: 7, md: 8 } }}>
         {children}
       </Box>
     </Box>
