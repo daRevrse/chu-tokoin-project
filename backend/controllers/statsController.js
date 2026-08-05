@@ -1,4 +1,4 @@
-const { PrescriptionExam, Exam, User, Payment, Prescription, Patient } = require('../models');
+const { PrescriptionExam, Exam, User, Payment, Prescription, Patient, Result } = require('../models');
 const { Op } = require('sequelize');
 const sequelize = require('../config/database');
 const logger = require('../utils/logger');
@@ -198,6 +198,75 @@ const statsController = {
       });
     } catch (error) {
       logger.error('Get global stats error:', error);
+      res.status(500).json({ error: 'Erreur lors de la recuperation des statistiques' });
+    }
+  },
+
+  /**
+   * Statistiques pour un medecin
+   * GET /api/stats/doctor
+   */
+  getDoctorStats: async (req, res) => {
+    try {
+      const doctorId = req.user.id;
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      // Prescriptions creees aujourd'hui par ce medecin
+      const todayPrescriptions = await Prescription.count({
+        where: {
+          doctorId,
+          createdAt: { [Op.gte]: today }
+        }
+      });
+
+      // Prescriptions en attente de paiement
+      const pendingPrescriptions = await Prescription.count({
+        where: {
+          doctorId,
+          status: 'PENDING'
+        }
+      });
+
+      // Total prescriptions
+      const totalPrescriptions = await Prescription.count({
+        where: { doctorId }
+      });
+
+      // Prescriptions terminees aujourd'hui
+      const completedToday = await Prescription.count({
+        where: {
+          doctorId,
+          status: 'COMPLETED',
+          updatedAt: { [Op.gte]: today }
+        }
+      });
+
+      // Resultats en attente de validation pour les prescriptions de ce medecin
+      const resultsAwaitingValidation = await Result.count({
+        where: { isValidated: false },
+        include: [{
+          model: PrescriptionExam,
+          as: 'prescriptionExam',
+          required: true,
+          include: [{
+            model: Prescription,
+            as: 'prescription',
+            where: { doctorId },
+            attributes: []
+          }]
+        }]
+      });
+
+      res.json({
+        todayPrescriptions,
+        pendingPrescriptions,
+        totalPrescriptions,
+        completedToday,
+        resultsAwaitingValidation
+      });
+    } catch (error) {
+      logger.error('Get doctor stats error:', error);
       res.status(500).json({ error: 'Erreur lors de la recuperation des statistiques' });
     }
   }

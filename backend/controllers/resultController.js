@@ -83,6 +83,59 @@ const resultController = {
   },
 
   /**
+   * Obtenir les resultats en attente de validation pour un medecin
+   * GET /api/results/pending-validation
+   */
+  getPendingValidation: async (req, res) => {
+    try {
+      const doctorId = req.user.id;
+
+      const results = await Result.findAll({
+        where: { isValidated: false },
+        include: [
+          {
+            model: PrescriptionExam,
+            as: 'prescriptionExam',
+            required: true,
+            include: [
+              {
+                model: Exam,
+                as: 'exam',
+                attributes: ['id', 'name', 'code', 'category']
+              },
+              {
+                model: Prescription,
+                as: 'prescription',
+                where: { doctorId },
+                attributes: ['id', 'prescriptionNumber', 'createdAt'],
+                include: [{
+                  model: Patient,
+                  as: 'patient',
+                  attributes: ['id', 'firstName', 'lastName', 'patientNumber']
+                }]
+              }
+            ]
+          },
+          {
+            model: User,
+            as: 'uploader',
+            attributes: ['id', 'firstName', 'lastName']
+          }
+        ],
+        order: [['uploadDate', 'DESC']]
+      });
+
+      res.json({
+        results,
+        total: results.length
+      });
+    } catch (error) {
+      logger.error('Get pending validation error:', error);
+      res.status(500).json({ error: 'Erreur lors de la recuperation des resultats en attente' });
+    }
+  },
+
+  /**
    * Obtenir les resultats d'un examen
    * GET /api/results/exam/:prescriptionExamId
    */

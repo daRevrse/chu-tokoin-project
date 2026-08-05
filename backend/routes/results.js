@@ -16,6 +16,12 @@ router.post(
   resultController.upload
 );
 
+// Resultats en attente de validation (medecin)
+router.get('/pending-validation',
+  roleCheck('DOCTOR', 'ADMIN'),
+  resultController.getPendingValidation
+);
+
 // Obtenir les resultats d'un examen
 router.get('/exam/:prescriptionExamId', resultController.getByExam);
 

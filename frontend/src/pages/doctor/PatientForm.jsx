@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Paper,
@@ -18,7 +18,9 @@ import {
 } from '@mui/icons-material';
 import api from '../../services/api';
 
-const PatientForm = ({ onBack, onSuccess }) => {
+const PatientForm = ({ patient, onBack, onSuccess }) => {
+  const isEditMode = !!patient;
+
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -32,6 +34,20 @@ const PatientForm = ({ onBack, onSuccess }) => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
+  useEffect(() => {
+    if (patient) {
+      setFormData({
+        firstName: patient.firstName || '',
+        lastName: patient.lastName || '',
+        dateOfBirth: patient.dateOfBirth ? patient.dateOfBirth.split('T')[0] : '',
+        gender: patient.gender || '',
+        phone: patient.phone || '',
+        address: patient.address || '',
+        email: patient.email || ''
+      });
+    }
+  }, [patient]);
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
@@ -43,14 +59,23 @@ const PatientForm = ({ onBack, onSuccess }) => {
     setError('');
 
     try {
-      const response = await api.post('/patients', formData);
-      setSuccess('Patient enregistre avec succes!');
+      if (isEditMode) {
+        await api.put(`/patients/${patient.id}`, formData);
+        setSuccess('Patient mis a jour avec succes!');
+      } else {
+        const response = await api.post('/patients', formData);
+        setSuccess('Patient enregistre avec succes!');
+        setTimeout(() => {
+          if (onSuccess) onSuccess(response.data.patient);
+        }, 1000);
+        return;
+      }
       setTimeout(() => {
-        if (onSuccess) onSuccess(response.data.patient);
-      }, 1500);
-    } catch (error) {
-      console.error('Erreur creation patient:', error);
-      setError(error.response?.data?.message || 'Erreur lors de l\'enregistrement du patient');
+        if (onSuccess) onSuccess();
+      }, 1000);
+    } catch (err) {
+      console.error('Erreur patient:', err);
+      setError(err.response?.data?.message || err.response?.data?.error || 'Erreur lors de l\'enregistrement du patient');
     } finally {
       setLoading(false);
     }
@@ -67,7 +92,7 @@ const PatientForm = ({ onBack, onSuccess }) => {
       </Button>
 
       <Typography variant="h5" gutterBottom>
-        Nouveau Patient
+        {isEditMode ? 'Modifier le Patient' : 'Nouveau Patient'}
       </Typography>
 
       <Paper sx={{ p: 3, maxWidth: 800 }}>
@@ -162,7 +187,10 @@ const PatientForm = ({ onBack, onSuccess }) => {
                 startIcon={<SaveIcon />}
                 disabled={loading}
               >
-                {loading ? 'Enregistrement...' : 'Enregistrer le Patient'}
+                {loading
+                  ? (isEditMode ? 'Mise a jour...' : 'Enregistrement...')
+                  : (isEditMode ? 'Mettre a jour' : 'Enregistrer le Patient')
+                }
               </Button>
             </Grid>
           </Grid>

@@ -13,6 +13,12 @@ router.get('/service',
   statsController.getServiceStats
 );
 
+// Stats medecin
+router.get('/doctor',
+  roleCheck('DOCTOR', 'ADMIN'),
+  statsController.getDoctorStats
+);
+
 // Stats globales (admin uniquement)
 router.get('/global',
   roleCheck('ADMIN'),

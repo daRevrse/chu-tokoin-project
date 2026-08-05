@@ -287,6 +287,99 @@ const patientRecordController = {
   },
 
   /**
+   * Resume medical d'un patient
+   * GET /api/patient-records/:patientId/summary
+   */
+  getMedicalSummary: async (req, res) => {
+    try {
+      const { patientId } = req.params;
+
+      const patient = await Patient.findByPk(patientId);
+      if (!patient) {
+        return res.status(404).json({ error: 'Patient non trouve' });
+      }
+
+      const totalPrescriptions = await Prescription.count({
+        where: { patientId }
+      });
+
+      const completedPrescriptions = await Prescription.count({
+        where: { patientId, status: 'COMPLETED' }
+      });
+
+      const totalExams = await PrescriptionExam.count({
+        include: [{
+          model: Prescription,
+          as: 'prescription',
+          where: { patientId },
+          attributes: []
+        }]
+      });
+
+      const completedExams = await PrescriptionExam.count({
+        where: { status: 'COMPLETED' },
+        include: [{
+          model: Prescription,
+          as: 'prescription',
+          where: { patientId },
+          attributes: []
+        }]
+      });
+
+      const totalResults = await Result.count({
+        include: [{
+          model: PrescriptionExam,
+          as: 'prescriptionExam',
+          required: true,
+          include: [{
+            model: Prescription,
+            as: 'prescription',
+            where: { patientId },
+            attributes: []
+          }]
+        }]
+      });
+
+      // Derniere visite
+      const lastPrescription = await Prescription.findOne({
+        where: { patientId },
+        include: [{
+          model: User,
+          as: 'doctor',
+          attributes: ['id', 'firstName', 'lastName']
+        }],
+        order: [['createdAt', 'DESC']]
+      });
+
+      res.json({
+        patient: {
+          id: patient.id,
+          firstName: patient.firstName,
+          lastName: patient.lastName,
+          patientNumber: patient.patientNumber,
+          dateOfBirth: patient.dateOfBirth,
+          gender: patient.gender,
+          phone: patient.phone
+        },
+        summary: {
+          totalPrescriptions,
+          completedPrescriptions,
+          totalExams,
+          completedExams,
+          totalResults,
+          lastVisit: lastPrescription ? {
+            date: lastPrescription.createdAt,
+            doctor: lastPrescription.doctor
+          } : null
+        }
+      });
+    } catch (error) {
+      logger.error('Get medical summary error:', error);
+      res.status(500).json({ error: 'Erreur lors de la recuperation du resume' });
+    }
+  },
+
+  /**
    * Rechercher des patients
    * GET /api/patient-records/search
    */

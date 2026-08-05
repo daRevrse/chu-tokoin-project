@@ -19,11 +19,13 @@ import {
 import {
   Search as SearchIcon,
   Add as AddIcon,
-  Visibility as ViewIcon
+  Visibility as ViewIcon,
+  Edit as EditIcon,
+  Folder as FolderIcon
 } from '@mui/icons-material';
 import api from '../../services/api';
 
-const PatientSearch = ({ onSelectPatient, onCreatePrescription }) => {
+const PatientSearch = ({ onSelectPatient, onCreatePrescription, onEditPatient, onViewRecord }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [patients, setPatients] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -34,7 +36,7 @@ const PatientSearch = ({ onSelectPatient, onCreatePrescription }) => {
 
     setLoading(true);
     try {
-      const response = await api.get(`/patients?search=${encodeURIComponent(searchTerm)}`);
+      const response = await api.get(`/patients?q=${encodeURIComponent(searchTerm)}`);
       setPatients(response.data.patients || []);
       setSearched(true);
     } catch (error) {
@@ -63,10 +65,6 @@ const PatientSearch = ({ onSelectPatient, onCreatePrescription }) => {
 
   return (
     <Box>
-      <Typography variant="h6" gutterBottom>
-        Rechercher un Patient
-      </Typography>
-
       <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
         <TextField
           fullWidth
@@ -135,12 +133,12 @@ const PatientSearch = ({ onSelectPatient, onCreatePrescription }) => {
                     </TableCell>
                     <TableCell>{patient.phone}</TableCell>
                     <TableCell align="center">
-                      <Tooltip title="Voir details">
+                      <Tooltip title="Dossier patient">
                         <IconButton
                           size="small"
-                          onClick={() => onSelectPatient && onSelectPatient(patient)}
+                          onClick={() => onViewRecord && onViewRecord(patient)}
                         >
-                          <ViewIcon />
+                          <FolderIcon />
                         </IconButton>
                       </Tooltip>
                       <Tooltip title="Nouvelle prescription">
@@ -150,6 +148,14 @@ const PatientSearch = ({ onSelectPatient, onCreatePrescription }) => {
                           onClick={() => onCreatePrescription && onCreatePrescription(patient)}
                         >
                           <AddIcon />
+                        </IconButton>
+                      </Tooltip>
+                      <Tooltip title="Modifier">
+                        <IconButton
+                          size="small"
+                          onClick={() => onEditPatient && onEditPatient(patient)}
+                        >
+                          <EditIcon />
                         </IconButton>
                       </Tooltip>
                     </TableCell>

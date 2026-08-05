@@ -309,13 +309,23 @@ const prescriptionController = {
    */
   getMyPrescriptions: async (req, res) => {
     try {
-      const { status, page = 1, limit = 50 } = req.query;
+      const { status, page = 1, limit = 50, startDate, endDate } = req.query;
       const offset = (page - 1) * limit;
 
       const where = { doctorId: req.user.id };
 
       if (status) {
         where.status = status;
+      }
+
+      if (startDate || endDate) {
+        where.createdAt = {};
+        if (startDate) {
+          where.createdAt[Op.gte] = new Date(startDate);
+        }
+        if (endDate) {
+          where.createdAt[Op.lte] = new Date(endDate);
+        }
       }
 
       const { count, rows } = await Prescription.findAndCountAll({

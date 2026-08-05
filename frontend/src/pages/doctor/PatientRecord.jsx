@@ -47,8 +47,9 @@ import {
   Description as FileIcon
 } from '@mui/icons-material';
 import api from '../../services/api';
+import ConfirmDialog from '../../components/common/ConfirmDialog';
 
-const PatientRecord = () => {
+const PatientRecord = ({ initialPatient, onCreatePrescription }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [selectedPatient, setSelectedPatient] = useState(null);
@@ -58,6 +59,15 @@ const PatientRecord = () => {
   const [activeTab, setActiveTab] = useState(0);
   const [linkDialog, setLinkDialog] = useState({ open: false, link: '', token: '' });
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
+  const [confirmDialog, setConfirmDialog] = useState({ open: false, resultId: null });
+
+  // Auto-select patient from cross-navigation
+  useEffect(() => {
+    if (initialPatient && initialPatient.id) {
+      setSelectedPatient(initialPatient);
+      loadPatientRecord(initialPatient.id);
+    }
+  }, [initialPatient]);
 
   useEffect(() => {
     if (searchQuery.length >= 2) {
@@ -144,7 +154,14 @@ const PatientRecord = () => {
     }
   };
 
-  const handleValidateResult = async (resultId) => {
+  const handleValidateResult = (resultId) => {
+    setConfirmDialog({ open: true, resultId });
+  };
+
+  const handleConfirmValidate = async () => {
+    const { resultId } = confirmDialog;
+    setConfirmDialog({ open: false, resultId: null });
+
     try {
       const response = await api.patch(`/results/${resultId}/validate`);
       showSnackbar('Resultat valide avec succes', 'success');
@@ -294,12 +311,25 @@ const PatientRecord = () => {
                     {selectedPatient.patientNumber}
                   </Typography>
 
+                  {onCreatePrescription && (
+                    <Button
+                      fullWidth
+                      variant="contained"
+                      color="primary"
+                      startIcon={<PrescriptionIcon />}
+                      onClick={() => onCreatePrescription(selectedPatient)}
+                      sx={{ mt: 2 }}
+                    >
+                      Nouvelle Prescription
+                    </Button>
+                  )}
+
                   <Button
                     fullWidth
-                    variant="contained"
+                    variant="outlined"
                     startIcon={<LinkIcon />}
                     onClick={generatePortalLink}
-                    sx={{ mt: 2 }}
+                    sx={{ mt: 1 }}
                   >
                     Generer lien portail
                   </Button>
@@ -520,6 +550,16 @@ const PatientRecord = () => {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Confirm validation dialog */}
+      <ConfirmDialog
+        open={confirmDialog.open}
+        title="Valider le resultat"
+        message="Etes-vous sur de vouloir valider ce resultat ? Il sera visible par le patient via le portail."
+        confirmText="Valider"
+        onConfirm={handleConfirmValidate}
+        onCancel={() => setConfirmDialog({ open: false, resultId: null })}
+      />
 
       {/* Snackbar */}
       <Snackbar
