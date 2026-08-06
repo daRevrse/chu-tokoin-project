@@ -14,11 +14,11 @@ import {
   Avatar
 } from '@mui/material';
 import {
-  Person as PersonIcon,
-  PlayArrow as PlayIcon,
-  CheckCircle as CompleteIcon,
-  Receipt as ReceiptIcon,
-  CalendarToday as CalendarIcon
+  PersonRounded as PersonIcon,
+  PlayArrowRounded as PlayIcon,
+  CheckCircleRounded as CompleteIcon,
+  ReceiptRounded as ReceiptIcon,
+  CalendarTodayRounded as CalendarIcon
 } from '@mui/icons-material';
 
 const PatientExamCard = ({
@@ -45,7 +45,7 @@ const PatientExamCard = ({
     const config = {
       PAID: { label: 'En attente', color: 'warning' },
       IN_PROGRESS: { label: 'En cours', color: 'info' },
-      COMPLETED: { label: 'Termine', color: 'success' }
+      COMPLETED: { label: 'Terminé', color: 'success' }
     };
     return config[status] || { label: status, color: 'default' };
   };
@@ -55,12 +55,12 @@ const PatientExamCard = ({
   const completedExams = exams.filter(e => e.status === 'COMPLETED');
 
   return (
-    <Card elevation={3}>
-      <CardContent>
+    <Card elevation={0} sx={{ borderRadius: 4, boxShadow: '0 4px 20px rgba(0,0,0,0.03)', height: '100%' }}>
+      <CardContent sx={{ p: { xs: 3, md: 4 } }}>
         {/* En-tete Patient */}
-        <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-          <Avatar sx={{ bgcolor: 'primary.main', mr: 2, width: 56, height: 56 }}>
-            <PersonIcon fontSize="large" />
+        <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
+          <Avatar sx={{ bgcolor: 'primary.main', mr: 2, width: 64, height: 64, borderRadius: 3 }} variant="rounded">
+            <PersonIcon sx={{ fontSize: 32 }} />
           </Avatar>
           <Box sx={{ flexGrow: 1 }}>
             <Typography variant="h5" fontWeight="bold">
@@ -69,35 +69,36 @@ const PatientExamCard = ({
             <Chip
               label={patient.patientNumber}
               color="primary"
+              variant="outlined"
               size="small"
-              sx={{ mt: 0.5 }}
+              sx={{ mt: 0.5, fontWeight: 'bold' }}
             />
           </Box>
         </Box>
 
         {/* Informations Prescription/Paiement */}
-        <Grid container spacing={2} sx={{ mb: 2 }}>
-          <Grid item xs={6}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+        <Grid container spacing={2} sx={{ mb: 3 }}>
+          <Grid size={{ xs: 12, sm: 6 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, p: 2, bgcolor: '#f8fafc', borderRadius: 3 }}>
               <ReceiptIcon color="action" fontSize="small" />
               <Box>
-                <Typography variant="caption" color="textSecondary">
+                <Typography variant="caption" color="textSecondary" fontWeight="bold" display="block">
                   Prescription
                 </Typography>
-                <Typography variant="body2" fontWeight="medium">
+                <Typography variant="body2" fontWeight="bold">
                   {prescriptionNumber}
                 </Typography>
               </Box>
             </Box>
           </Grid>
-          <Grid item xs={6}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Grid size={{ xs: 12, sm: 6 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, p: 2, bgcolor: '#f8fafc', borderRadius: 3 }}>
               <CalendarIcon color="action" fontSize="small" />
               <Box>
-                <Typography variant="caption" color="textSecondary">
-                  Paye le
+                <Typography variant="caption" color="textSecondary" fontWeight="bold" display="block">
+                  Payé le
                 </Typography>
-                <Typography variant="body2" fontWeight="medium">
+                <Typography variant="body2" fontWeight="bold">
                   {formatDate(paidAt)}
                 </Typography>
               </Box>
@@ -105,15 +106,16 @@ const PatientExamCard = ({
           </Grid>
         </Grid>
 
-        <Divider sx={{ my: 2 }} />
+        <Divider sx={{ my: 3 }} />
 
         {/* Resume des examens */}
-        <Box sx={{ display: 'flex', gap: 1, mb: 2, flexWrap: 'wrap' }}>
+        <Box sx={{ display: 'flex', gap: 1, mb: 3, flexWrap: 'wrap' }}>
           {pendingExams.length > 0 && (
             <Chip
               label={`${pendingExams.length} en attente`}
               color="warning"
               size="small"
+              sx={{ fontWeight: 'bold' }}
             />
           )}
           {inProgressExams.length > 0 && (
@@ -121,20 +123,22 @@ const PatientExamCard = ({
               label={`${inProgressExams.length} en cours`}
               color="info"
               size="small"
+              sx={{ fontWeight: 'bold' }}
             />
           )}
           {completedExams.length > 0 && (
             <Chip
-              label={`${completedExams.length} termine(s)`}
+              label={`${completedExams.length} terminé(s)`}
               color="success"
               size="small"
+              sx={{ fontWeight: 'bold' }}
             />
           )}
         </Box>
 
         {/* Liste des examens */}
-        <Typography variant="subtitle1" fontWeight="medium" gutterBottom>
-          Examens a effectuer ({exams.length})
+        <Typography variant="subtitle1" fontWeight="bold" sx={{ mb: 2 }}>
+          Examens à effectuer ({exams.length})
         </Typography>
 
         <List disablePadding>
@@ -144,11 +148,13 @@ const PatientExamCard = ({
               <ListItem
                 key={exam.id}
                 sx={{
-                  bgcolor: exam.status === 'IN_PROGRESS' ? 'info.light' : 'grey.50',
-                  borderRadius: 1,
-                  mb: 1,
-                  border: exam.status === 'IN_PROGRESS' ? '2px solid' : '1px solid',
-                  borderColor: exam.status === 'IN_PROGRESS' ? 'info.main' : 'grey.200'
+                  bgcolor: exam.status === 'IN_PROGRESS' ? '#e3f2fd' : '#f8fafc',
+                  borderRadius: 3,
+                  mb: 1.5,
+                  py: 2,
+                  pr: 16,
+                  border: '1px solid',
+                  borderColor: exam.status === 'IN_PROGRESS' ? '#90caf9' : 'divider'
                 }}
                 secondaryAction={
                   <Box>
@@ -159,8 +165,9 @@ const PatientExamCard = ({
                         startIcon={<PlayIcon />}
                         onClick={() => onStartExam(exam.id)}
                         disabled={loading}
+                        sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 'bold', boxShadow: 'none' }}
                       >
-                        Demarrer
+                        Démarrer
                       </Button>
                     )}
                     {exam.status === 'IN_PROGRESS' && (
@@ -171,6 +178,7 @@ const PatientExamCard = ({
                         startIcon={<CompleteIcon />}
                         onClick={() => onCompleteExam(exam.id)}
                         disabled={loading}
+                        sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 'bold', boxShadow: 'none' }}
                       >
                         Terminer
                       </Button>
@@ -178,9 +186,10 @@ const PatientExamCard = ({
                     {exam.status === 'COMPLETED' && (
                       <Chip
                         icon={<CompleteIcon />}
-                        label="Termine"
+                        label="Terminé"
                         color="success"
                         size="small"
+                        sx={{ fontWeight: 'bold' }}
                       />
                     )}
                   </Box>
@@ -188,17 +197,19 @@ const PatientExamCard = ({
               >
                 <ListItemText
                   primary={
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <Typography fontWeight="medium">{exam.name}</Typography>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+                      <Typography fontWeight="bold">{exam.name}</Typography>
                       <Chip
                         label={statusConfig.label}
                         color={statusConfig.color}
                         size="small"
                         variant="outlined"
+                        sx={{ fontWeight: 'bold', bgcolor: 'white' }}
                       />
                     </Box>
                   }
-                  secondary={`Code: ${exam.code}`}
+                  secondary={`Code : ${exam.code}`}
+                  secondaryTypographyProps={{ variant: 'caption' }}
                 />
               </ListItem>
             );

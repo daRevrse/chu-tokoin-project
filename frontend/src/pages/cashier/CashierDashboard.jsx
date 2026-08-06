@@ -18,9 +18,10 @@ import {
   Chip
 } from '@mui/material';
 import {
-  PendingActions as PendingIcon,
-  CheckCircle as CompletedIcon,
-  AttachMoney as MoneyIcon
+  PendingActionsRounded as PendingIcon,
+  CheckCircleRounded as CompletedIcon,
+  AccountBalanceWalletRounded as MoneyIcon,
+  ReceiptRounded as ReceiptIcon
 } from '@mui/icons-material';
 import { useAuth } from '../../contexts/AuthContext';
 import api from '../../services/api';
@@ -108,11 +109,26 @@ const CashierDashboard = () => {
 
   const getPaymentMethodLabel = (method) => {
     const labels = {
-      CASH: 'Especes',
+      CASH: 'Espèces',
       MOBILE_MONEY: 'Mobile Money',
       CARD: 'Carte'
     };
     return labels[method] || method;
+  };
+
+  // Styles partagés pour les cartes statistiques
+  const cardStyle = {
+    elevation: 0,
+    sx: {
+      borderRadius: 4,
+      boxShadow: '0 4px 20px rgba(0,0,0,0.03)',
+      transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+      height: '100%',
+      '&:hover': {
+        transform: 'translateY(-4px)',
+        boxShadow: '0 12px 30px rgba(0,0,0,0.08)'
+      }
+    }
   };
 
   if (selectedPrescription) {
@@ -129,62 +145,84 @@ const CashierDashboard = () => {
 
   return (
     <Container maxWidth="xl" sx={{ py: 3 }}>
-      <Box sx={{ mb: 3 }}>
-        <Typography variant="h4" gutterBottom>
-          Tableau de Bord Caisse
+      <Box sx={{ mb: 4 }}>
+        <Typography variant="h4" fontWeight="bold" gutterBottom>
+          Espace Caisse
         </Typography>
-        <Typography color="textSecondary">
-          Bienvenue, {user?.firstName} {user?.lastName}
+        <Typography variant="body1" color="textSecondary">
+          Bienvenue, {user?.firstName} {user?.lastName} 👋
         </Typography>
       </Box>
 
-      {/* Statistiques */}
-      <Grid container spacing={3} sx={{ mb: 3 }}>
-        <Grid item xs={12} sm={4}>
-          <Card>
-            <CardContent>
-              <Typography color="textSecondary" gutterBottom>
-                Prescriptions en Attente
-              </Typography>
-              <Typography variant="h3" color="warning.main">
-                {stats.pendingCount}
-              </Typography>
+      {/* Statistiques Modernisées */}
+      <Grid container spacing={3} sx={{ mb: 4 }}>
+        <Grid size={{ xs: 12, sm: 4 }}>
+          <Card {...cardStyle}>
+            <CardContent sx={{ display: 'flex', alignItems: 'center', p: 3 }}>
+              <Box sx={{ bgcolor: '#fff3e0', width: 64, height: 64, borderRadius: 3, display: 'flex', alignItems: 'center', justifyContent: 'center', mr: 2 }}>
+                <PendingIcon sx={{ fontSize: 32, color: '#ed6c02' }} />
+              </Box>
+              <Box>
+                <Typography variant="h4" fontWeight="bold" color="textPrimary">
+                  {stats.pendingCount}
+                </Typography>
+                <Typography color="textSecondary" variant="body2" fontWeight="medium">
+                  Prescriptions en Attente
+                </Typography>
+              </Box>
             </CardContent>
           </Card>
         </Grid>
-        <Grid item xs={12} sm={4}>
-          <Card>
-            <CardContent>
-              <Typography color="textSecondary" gutterBottom>
-                Paiements Aujourd'hui
-              </Typography>
-              <Typography variant="h3" color="success.main">
-                {stats.todayPayments}
-              </Typography>
+
+        <Grid size={{ xs: 12, sm: 4 }}>
+          <Card {...cardStyle}>
+            <CardContent sx={{ display: 'flex', alignItems: 'center', p: 3 }}>
+              <Box sx={{ bgcolor: '#e8f5e9', width: 64, height: 64, borderRadius: 3, display: 'flex', alignItems: 'center', justifyContent: 'center', mr: 2 }}>
+                <ReceiptIcon sx={{ fontSize: 32, color: '#2e7d32' }} />
+              </Box>
+              <Box>
+                <Typography variant="h4" fontWeight="bold" color="textPrimary">
+                  {stats.todayPayments}
+                </Typography>
+                <Typography color="textSecondary" variant="body2" fontWeight="medium">
+                  Paiements (Aujourd'hui)
+                </Typography>
+              </Box>
             </CardContent>
           </Card>
         </Grid>
-        <Grid item xs={12} sm={4}>
-          <Card>
-            <CardContent>
-              <Typography color="textSecondary" gutterBottom>
-                Montant Encaisse Aujourd'hui
-              </Typography>
-              <Typography variant="h4" color="primary">
-                {formatPrice(stats.todayAmount)}
-              </Typography>
+
+        <Grid size={{ xs: 12, sm: 4 }}>
+          <Card {...cardStyle}>
+            <CardContent sx={{ display: 'flex', alignItems: 'center', p: 3 }}>
+              <Box sx={{ bgcolor: '#e3f2fd', width: 64, height: 64, borderRadius: 3, display: 'flex', alignItems: 'center', justifyContent: 'center', mr: 2 }}>
+                <MoneyIcon sx={{ fontSize: 32, color: '#1976d2' }} />
+              </Box>
+              <Box>
+                <Typography variant="h4" fontWeight="bold" color="textPrimary">
+                  {formatPrice(stats.todayAmount)}
+                </Typography>
+                <Typography color="textSecondary" variant="body2" fontWeight="medium">
+                  Encaissé (Aujourd'hui)
+                </Typography>
+              </Box>
             </CardContent>
           </Card>
         </Grid>
       </Grid>
 
       {/* Onglets */}
-      <Paper sx={{ mb: 3 }}>
+      <Paper elevation={0} sx={{ mb: 4, borderRadius: 4, boxShadow: '0 4px 20px rgba(0,0,0,0.03)', overflow: 'hidden' }}>
         <Tabs
           value={activeTab}
           onChange={(e, v) => setActiveTab(v)}
           indicatorColor="primary"
           textColor="primary"
+          sx={{
+            px: 2,
+            pt: 1,
+            '& .MuiTab-root': { fontWeight: 'bold', textTransform: 'none', minHeight: 60, fontSize: '1rem' }
+          }}
         >
           <Tab
             icon={<PendingIcon />}
@@ -193,7 +231,7 @@ const CashierDashboard = () => {
           />
           <Tab
             icon={<CompletedIcon />}
-            label="Paiements Effectues"
+            label="Paiements Effectués"
             iconPosition="start"
           />
         </Tabs>
@@ -201,63 +239,74 @@ const CashierDashboard = () => {
 
       {/* Contenu des onglets */}
       {activeTab === 0 && (
-        <Paper sx={{ p: 3 }}>
+        <Paper elevation={0} sx={{ p: 4, borderRadius: 4, boxShadow: '0 4px 20px rgba(0,0,0,0.03)' }}>
           <PendingPrescriptions onSelectPrescription={handleSelectPrescription} />
         </Paper>
       )}
 
       {activeTab === 1 && (
-        <Paper sx={{ p: 3 }}>
-          <Typography variant="h6" gutterBottom>
-            Historique des Paiements
-          </Typography>
+        <Paper elevation={0} sx={{ p: 4, borderRadius: 4, boxShadow: '0 4px 20px rgba(0,0,0,0.03)' }}>
+          <Box sx={{ mb: 3 }}>
+            <Typography variant="h6" fontWeight="bold">
+              Historique des Paiements
+            </Typography>
+          </Box>
 
-          <TableContainer>
+          <TableContainer sx={{ borderRadius: 3, border: '1px solid', borderColor: 'divider' }}>
             <Table>
-              <TableHead>
+              <TableHead sx={{ bgcolor: '#f8fafc' }}>
                 <TableRow>
-                  <TableCell>N° Paiement</TableCell>
-                  <TableCell>Patient</TableCell>
-                  <TableCell>Date</TableCell>
-                  <TableCell>Mode</TableCell>
-                  <TableCell align="right">Montant</TableCell>
-                  <TableCell>Statut</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold' }}>N° Paiement</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold' }}>Patient</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold' }}>Date</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold' }}>Mode</TableCell>
+                  <TableCell align="right" sx={{ fontWeight: 'bold' }}>Montant</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold' }}>Statut</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {recentPayments.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={6} align="center">
-                      <Typography color="textSecondary" sx={{ py: 3 }}>
-                        Aucun paiement trouve
-                      </Typography>
+                      <Box sx={{ py: 6 }}>
+                        <ReceiptIcon sx={{ fontSize: 60, color: 'text.disabled', mb: 2 }} />
+                        <Typography color="textSecondary">
+                          Aucun paiement trouvé
+                        </Typography>
+                      </Box>
                     </TableCell>
                   </TableRow>
                 ) : (
                   recentPayments.map((payment) => (
-                    <TableRow key={payment.id} hover>
+                    <TableRow 
+                      key={payment.id} 
+                      hover
+                      sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
+                    >
                       <TableCell>
                         <Chip
                           label={payment.paymentNumber}
                           size="small"
                           color="success"
                           variant="outlined"
+                          sx={{ fontWeight: 'bold' }}
                         />
                       </TableCell>
                       <TableCell>
-                        <Typography fontWeight="medium">
+                        <Typography fontWeight="bold" variant="body2">
                           {payment.prescription?.patient?.lastName} {payment.prescription?.patient?.firstName}
                         </Typography>
                         <Typography variant="caption" color="textSecondary">
                           {payment.prescription?.prescriptionNumber}
                         </Typography>
                       </TableCell>
-                      <TableCell>{formatDate(payment.createdAt)}</TableCell>
+                      <TableCell sx={{ color: 'text.secondary' }}>{formatDate(payment.createdAt)}</TableCell>
                       <TableCell>
                         <Chip
                           label={getPaymentMethodLabel(payment.paymentMethod)}
                           size="small"
                           variant="outlined"
+                          sx={{ bgcolor: '#f5f7fb' }}
                         />
                       </TableCell>
                       <TableCell align="right">
@@ -267,9 +316,10 @@ const CashierDashboard = () => {
                       </TableCell>
                       <TableCell>
                         <Chip
-                          label={payment.paymentStatus === 'SUCCESS' ? 'Paye' : payment.paymentStatus}
+                          label={payment.paymentStatus === 'SUCCESS' ? 'Payé' : payment.paymentStatus}
                           color={payment.paymentStatus === 'SUCCESS' ? 'success' : 'warning'}
                           size="small"
+                          sx={{ fontWeight: 'bold' }}
                         />
                       </TableCell>
                     </TableRow>

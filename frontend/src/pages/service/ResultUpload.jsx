@@ -14,11 +14,11 @@ import {
   Chip
 } from '@mui/material';
 import {
-  CloudUpload as UploadIcon,
-  Close as CloseIcon,
-  InsertDriveFile as FileIcon,
-  Image as ImageIcon,
-  PictureAsPdf as PdfIcon
+  CloudUploadRounded as UploadIcon,
+  CloseRounded as CloseIcon,
+  InsertDriveFileRounded as FileIcon,
+  ImageRounded as ImageIcon,
+  PictureAsPdfRounded as PdfIcon
 } from '@mui/icons-material';
 import api from '../../services/api';
 
@@ -48,12 +48,12 @@ const ResultUpload = ({ open, onClose, prescriptionExamId, examName, onUploadSuc
     if (!selectedFile) return;
 
     if (!allowedTypes.includes(selectedFile.type)) {
-      setError('Type de fichier non autorise. Formats acceptes: PDF, JPEG, PNG, GIF, DICOM');
+      setError('Type de fichier non autorisé. Formats acceptés : PDF, JPEG, PNG, GIF, DICOM');
       return;
     }
 
     if (selectedFile.size > maxFileSize) {
-      setError('Le fichier est trop volumineux. Taille maximum: 10MB');
+      setError('Le fichier est trop volumineux. Taille maximum : 10 Mo');
       return;
     }
 
@@ -92,7 +92,7 @@ const ResultUpload = ({ open, onClose, prescriptionExamId, examName, onUploadSuc
 
   const handleUpload = async () => {
     if (!file) {
-      setError('Veuillez selectionner un fichier');
+      setError('Veuillez sélectionner un fichier');
       return;
     }
 
@@ -122,7 +122,7 @@ const ResultUpload = ({ open, onClose, prescriptionExamId, examName, onUploadSuc
       onUploadSuccess && onUploadSuccess();
       handleClose();
     } catch (err) {
-      setError(err.response?.data?.error || 'Erreur lors de l\'upload');
+      setError(err.response?.data?.error || 'Erreur lors du téléversement');
     } finally {
       setUploading(false);
     }
@@ -138,24 +138,34 @@ const ResultUpload = ({ open, onClose, prescriptionExamId, examName, onUploadSuc
   };
 
   return (
-    <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
-      <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+    <Dialog
+      open={open}
+      onClose={handleClose}
+      maxWidth="sm"
+      fullWidth
+      PaperProps={{ sx: { borderRadius: 4, boxShadow: '0 12px 40px rgba(0,0,0,0.12)' } }}
+    >
+      <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', pt: 3 }}>
         <Box>
-          <Typography variant="h6">Upload de resultat</Typography>
+          <Typography variant="h6" fontWeight="bold">Téléverser un résultat</Typography>
           {examName && (
             <Typography variant="body2" color="textSecondary">
               {examName}
             </Typography>
           )}
         </Box>
-        <IconButton onClick={handleClose} disabled={uploading}>
+        <IconButton
+          onClick={handleClose}
+          disabled={uploading}
+          sx={{ color: 'text.secondary', '&:hover': { bgcolor: '#f5f7fb' } }}
+        >
           <CloseIcon />
         </IconButton>
       </DialogTitle>
 
       <DialogContent>
         {error && (
-          <Alert severity="error" sx={{ mb: 2 }}>
+          <Alert severity="error" sx={{ mb: 3, borderRadius: 2 }}>
             {error}
           </Alert>
         )}
@@ -164,16 +174,16 @@ const ResultUpload = ({ open, onClose, prescriptionExamId, examName, onUploadSuc
         <Box
           sx={{
             border: '2px dashed',
-            borderColor: file ? 'success.main' : 'grey.400',
-            borderRadius: 2,
-            p: 4,
+            borderColor: file ? 'success.main' : 'divider',
+            borderRadius: 3,
+            p: 5,
             textAlign: 'center',
             cursor: 'pointer',
-            bgcolor: file ? 'success.50' : 'grey.50',
-            transition: 'all 0.3s',
+            bgcolor: file ? '#e8f5e9' : '#f8fafc',
+            transition: 'all 0.2s ease',
             '&:hover': {
               borderColor: 'primary.main',
-              bgcolor: 'primary.50'
+              bgcolor: '#e3f2fd'
             }
           }}
           onClick={() => fileInputRef.current?.click()}
@@ -199,26 +209,26 @@ const ResultUpload = ({ open, onClose, prescriptionExamId, examName, onUploadSuc
                 label={formatFileSize(file.size)}
                 size="small"
                 color="success"
-                sx={{ mt: 1 }}
+                sx={{ mt: 1, fontWeight: 'bold' }}
               />
             </Box>
           ) : (
             <Box sx={{ mt: 2 }}>
-              <Typography variant="subtitle1">
-                Cliquez ou glissez-deposez un fichier ici
+              <Typography variant="subtitle1" fontWeight="bold">
+                Cliquez ou glissez-déposez un fichier ici
               </Typography>
               <Typography variant="body2" color="textSecondary">
-                PDF, JPEG, PNG, GIF ou DICOM (max 10MB)
+                PDF, JPEG, PNG, GIF ou DICOM (max 10 Mo)
               </Typography>
             </Box>
           )}
         </Box>
 
         {uploading && (
-          <Box sx={{ mt: 2 }}>
-            <LinearProgress variant="determinate" value={progress} />
-            <Typography variant="body2" color="textSecondary" align="center" sx={{ mt: 1 }}>
-              Upload en cours... {progress}%
+          <Box sx={{ mt: 3 }}>
+            <LinearProgress variant="determinate" value={progress} sx={{ borderRadius: 2, height: 8 }} />
+            <Typography variant="body2" color="textSecondary" align="center" fontWeight="bold" sx={{ mt: 1 }}>
+              Téléversement en cours... {progress}%
             </Typography>
           </Box>
         )}
@@ -232,7 +242,7 @@ const ResultUpload = ({ open, onClose, prescriptionExamId, examName, onUploadSuc
           value={comments}
           onChange={(e) => setComments(e.target.value)}
           disabled={uploading}
-          sx={{ mt: 3 }}
+          sx={{ mt: 3, '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
           placeholder="Observations, remarques..."
         />
 
@@ -244,13 +254,17 @@ const ResultUpload = ({ open, onClose, prescriptionExamId, examName, onUploadSuc
           value={conclusion}
           onChange={(e) => setConclusion(e.target.value)}
           disabled={uploading}
-          sx={{ mt: 2 }}
-          placeholder="Conclusion du resultat..."
+          sx={{ mt: 2, '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+          placeholder="Conclusion du résultat..."
         />
       </DialogContent>
 
-      <DialogActions sx={{ px: 3, pb: 2 }}>
-        <Button onClick={handleClose} disabled={uploading}>
+      <DialogActions sx={{ p: 3, pt: 2 }}>
+        <Button
+          onClick={handleClose}
+          disabled={uploading}
+          sx={{ borderRadius: 2, textTransform: 'none', color: 'text.secondary' }}
+        >
           Annuler
         </Button>
         <Button
@@ -258,8 +272,9 @@ const ResultUpload = ({ open, onClose, prescriptionExamId, examName, onUploadSuc
           startIcon={<UploadIcon />}
           onClick={handleUpload}
           disabled={!file || uploading}
+          sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 'bold', boxShadow: 'none', px: 3 }}
         >
-          {uploading ? 'Upload en cours...' : 'Uploader'}
+          {uploading ? 'Téléversement...' : 'Téléverser'}
         </Button>
       </DialogActions>
     </Dialog>

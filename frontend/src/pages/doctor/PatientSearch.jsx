@@ -17,10 +17,11 @@ import {
   Tooltip
 } from '@mui/material';
 import {
-  Search as SearchIcon,
-  Add as AddIcon,
-  Visibility as ViewIcon,
-  Edit as EditIcon
+  SearchRounded as SearchIcon,
+  AddRounded as AddIcon,
+  VisibilityRounded as ViewIcon,
+  EditRounded as EditIcon,
+  PersonOffRounded as NoPatientIcon
 } from '@mui/icons-material';
 import api from '../../services/api';
 
@@ -64,104 +65,107 @@ const PatientSearch = ({ onSelectPatient, onCreatePrescription, onEditPatient })
 
   return (
     <Box>
-      <Typography variant="h6" gutterBottom>
-        Rechercher un Patient
-      </Typography>
-
-      <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
+      <Box sx={{ display: 'flex', gap: 2, mb: 4, flexWrap: 'wrap' }}>
         <TextField
           fullWidth
-          placeholder="Nom, prenom, numero patient ou telephone..."
+          placeholder="Nom, prénom, numéro patient ou téléphone..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           onKeyDown={handleKeyDown}
           InputProps={{
             startAdornment: (
               <InputAdornment position="start">
-                <SearchIcon />
+                <SearchIcon color="action" />
               </InputAdornment>
             )
           }}
+          sx={{ flexGrow: 1, '& .MuiOutlinedInput-root': { borderRadius: 2, bgcolor: 'white' } }}
         />
         <Button
           variant="contained"
           onClick={handleSearch}
           disabled={loading || !searchTerm.trim()}
-          sx={{ minWidth: 120 }}
+          sx={{ minWidth: 140, borderRadius: 2, textTransform: 'none', boxShadow: 'none', fontWeight: 'bold' }}
         >
           {loading ? 'Recherche...' : 'Rechercher'}
         </Button>
       </Box>
 
       {searched && (
-        <TableContainer component={Paper}>
+        <TableContainer component={Paper} elevation={0} sx={{ borderRadius: 3, border: '1px solid', borderColor: 'divider' }}>
           <Table>
-            <TableHead>
+            <TableHead sx={{ bgcolor: '#f8fafc' }}>
               <TableRow>
-                <TableCell>N° Patient</TableCell>
-                <TableCell>Nom Complet</TableCell>
-                <TableCell>Age</TableCell>
-                <TableCell>Sexe</TableCell>
-                <TableCell>Telephone</TableCell>
-                <TableCell align="center">Actions</TableCell>
+                <TableCell sx={{ fontWeight: 'bold' }}>N° Patient</TableCell>
+                <TableCell sx={{ fontWeight: 'bold' }}>Nom Complet</TableCell>
+                <TableCell sx={{ fontWeight: 'bold' }}>Âge</TableCell>
+                <TableCell sx={{ fontWeight: 'bold' }}>Sexe</TableCell>
+                <TableCell sx={{ fontWeight: 'bold' }}>Téléphone</TableCell>
+                <TableCell align="center" sx={{ fontWeight: 'bold' }}>Actions</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {patients.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={6} align="center">
-                    <Typography color="textSecondary" sx={{ py: 2 }}>
-                      Aucun patient trouve
-                    </Typography>
+                    <Box sx={{ py: 6 }}>
+                      <NoPatientIcon sx={{ fontSize: 48, color: 'text.disabled', mb: 2 }} />
+                      <Typography color="textSecondary">
+                        Aucun patient trouvé
+                      </Typography>
+                    </Box>
                   </TableCell>
                 </TableRow>
               ) : (
                 patients.map((patient) => (
-                  <TableRow key={patient.id} hover>
+                  <TableRow key={patient.id} hover sx={{ '&:last-child td, &:last-child th': { border: 0 } }}>
                     <TableCell>
-                      <Chip label={patient.patientNumber} size="small" color="primary" variant="outlined" />
+                      <Chip label={patient.patientNumber} size="small" color="primary" variant="outlined" sx={{ fontWeight: 'bold' }} />
                     </TableCell>
                     <TableCell>
-                      <Typography fontWeight="medium">
+                      <Typography fontWeight="bold" variant="body2">
                         {patient.lastName} {patient.firstName}
                       </Typography>
                     </TableCell>
-                    <TableCell>{calculateAge(patient.dateOfBirth)} ans</TableCell>
+                    <TableCell sx={{ color: 'text.secondary' }}>{calculateAge(patient.dateOfBirth)} ans</TableCell>
                     <TableCell>
                       <Chip
                         label={patient.gender === 'M' ? 'Homme' : 'Femme'}
                         size="small"
                         color={patient.gender === 'M' ? 'info' : 'secondary'}
+                        sx={{ fontWeight: 'bold' }}
                       />
                     </TableCell>
-                    <TableCell>{patient.phone}</TableCell>
+                    <TableCell sx={{ color: 'text.secondary' }}>{patient.phone}</TableCell>
                     <TableCell align="center">
-                      <Tooltip title="Voir details">
+                      <Tooltip title="Voir détails" arrow>
                         <IconButton
                           size="small"
                           onClick={() => onSelectPatient && onSelectPatient(patient)}
+                          sx={{ color: 'text.secondary', '&:hover': { color: 'primary.main', bgcolor: '#e3f2fd' } }}
                         >
-                          <ViewIcon />
+                          <ViewIcon fontSize="small" />
                         </IconButton>
                       </Tooltip>
                       {onEditPatient && (
-                        <Tooltip title="Modifier">
+                        <Tooltip title="Modifier" arrow>
                           <IconButton
                             size="small"
-                            color="default"
                             onClick={() => onEditPatient(patient)}
+                            sx={{ color: 'text.secondary', ml: 0.5, '&:hover': { color: 'info.main', bgcolor: '#e1f5fe' } }}
                           >
-                            <EditIcon />
+                            <EditIcon fontSize="small" />
                           </IconButton>
                         </Tooltip>
                       )}
-                      <Tooltip title="Nouvelle prescription">
+                      <Tooltip title="Nouvelle prescription" arrow>
                         <IconButton
                           size="small"
                           color="primary"
                           onClick={() => onCreatePrescription && onCreatePrescription(patient)}
+                          sx={{ ml: 0.5, bgcolor: '#e3f2fd', '&:hover': { bgcolor: 'primary.main', color: 'white' } }}
                         >
-                          <AddIcon />
+                          <AddIcon fontSize="small" />
                         </IconButton>
                       </Tooltip>
                     </TableCell>

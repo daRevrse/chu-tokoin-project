@@ -14,13 +14,13 @@ import {
   Button
 } from '@mui/material';
 import {
-  QrCodeScanner as ScanIcon,
-  List as ListIcon,
-  Assignment as MyExamsIcon,
-  HourglassEmpty as PendingIcon,
-  PlayCircle as InProgressIcon,
-  CheckCircle as CompletedIcon,
-  Refresh as RefreshIcon
+  QrCodeScannerRounded as ScanIcon,
+  ListAltRounded as ListIcon,
+  AssignmentRounded as MyExamsIcon,
+  HourglassEmptyRounded as PendingIcon,
+  PlayCircleRounded as InProgressIcon,
+  CheckCircleRounded as CompletedIcon,
+  RefreshRounded as RefreshIcon
 } from '@mui/icons-material';
 import { useAuth } from '../../contexts/AuthContext';
 import api from '../../services/api';
@@ -29,6 +29,7 @@ import ExamQueue from './ExamQueue';
 import PatientExamCard from './PatientExamCard';
 import ResultUpload from './ResultUpload';
 import ResultsViewer from './ResultsViewer';
+import ExamSteps from './ExamSteps';
 
 const ServiceDashboard = () => {
   const { user } = useAuth();
@@ -42,8 +43,12 @@ const ServiceDashboard = () => {
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
   const [uploadDialog, setUploadDialog] = useState({ open: false, examId: null, examName: '' });
   const [viewResultsDialog, setViewResultsDialog] = useState({ open: false, examId: null, examName: '' });
+  const [stepsDialog, setStepsDialog] = useState({ open: false, examId: null, examName: '', patientName: '' });
 
-  const serviceName = user?.role === 'RADIOLOGIST' ? 'Radiologie' : 'Laboratoire';
+  // Nom du service d'affectation ; repli sur le role pour les comptes qui
+  // n'ont pas encore de service rattache.
+  const serviceName = user?.service?.name
+    || (user?.role === 'RADIOLOGIST' ? 'Radiologie' : 'Laboratoire');
 
   useEffect(() => {
     fetchData();
@@ -99,7 +104,7 @@ const ServiceDashboard = () => {
     try {
       const response = await api.post('/services/verify-qr', { qrData });
       setScannedPatient(response.data);
-      showSnackbar('Patient trouve avec succes', 'success');
+      showSnackbar('Patient trouvé avec succès', 'success');
     } catch (error) {
       const errorMsg = error.response?.data?.error || 'QR code invalide ou erreur de lecture';
       showSnackbar(errorMsg, 'error');
@@ -113,7 +118,7 @@ const ServiceDashboard = () => {
     setLoading(true);
     try {
       await api.patch(`/services/exams/${examId}/start`);
-      showSnackbar('Examen demarre avec succes', 'success');
+      showSnackbar('Examen démarré avec succès', 'success');
 
       // Mettre a jour les listes
       fetchData();
@@ -128,7 +133,7 @@ const ServiceDashboard = () => {
         }));
       }
     } catch (error) {
-      showSnackbar(error.response?.data?.error || 'Erreur lors du demarrage', 'error');
+      showSnackbar(error.response?.data?.error || 'Erreur lors du démarrage', 'error');
     } finally {
       setLoading(false);
     }
@@ -138,10 +143,10 @@ const ServiceDashboard = () => {
     setLoading(true);
     try {
       const response = await api.patch(`/services/exams/${examId}/complete`);
-      showSnackbar('Examen termine avec succes', 'success');
+      showSnackbar('Examen terminé avec succès', 'success');
 
       if (response.data.prescriptionCompleted) {
-        showSnackbar('Tous les examens de la prescription sont termines!', 'info');
+        showSnackbar('Tous les examens de la prescription sont terminés !', 'info');
       }
 
       // Mettre a jour les listes
@@ -157,7 +162,7 @@ const ServiceDashboard = () => {
         }));
       }
     } catch (error) {
-      showSnackbar(error.response?.data?.error || 'Erreur lors de la completion', 'error');
+      showSnackbar(error.response?.data?.error || 'Erreur lors de la complétion', 'error');
     } finally {
       setLoading(false);
     }
@@ -179,21 +184,45 @@ const ServiceDashboard = () => {
     setViewResultsDialog({ open: true, examId, examName });
   };
 
+  const handleShowSteps = (exam) => {
+    setStepsDialog({
+      open: true,
+      examId: exam.id,
+      examName: exam.examName || exam.name,
+      patientName: exam.patientName || ''
+    });
+  };
+
   const handleUploadSuccess = () => {
-    showSnackbar('Resultat uploade avec succes', 'success');
+    showSnackbar('Résultat téléversé avec succès', 'success');
     fetchData();
+  };
+
+  // Styles partagés pour les cartes statistiques
+  const cardStyle = {
+    elevation: 0,
+    sx: {
+      borderRadius: 4,
+      boxShadow: '0 4px 20px rgba(0,0,0,0.03)',
+      transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+      height: '100%',
+      '&:hover': {
+        transform: 'translateY(-4px)',
+        boxShadow: '0 12px 30px rgba(0,0,0,0.08)'
+      }
+    }
   };
 
   return (
     <Container maxWidth="xl" sx={{ py: 3 }}>
       {/* En-tete */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4, gap: 2, flexWrap: 'wrap' }}>
         <Box>
-          <Typography variant="h4" gutterBottom>
+          <Typography variant="h4" fontWeight="bold" gutterBottom>
             Service {serviceName}
           </Typography>
-          <Typography color="textSecondary">
-            Bienvenue, {user?.firstName} {user?.lastName}
+          <Typography variant="body1" color="textSecondary">
+            Bienvenue, {user?.firstName} {user?.lastName} 👋
           </Typography>
         </Box>
         <Button
@@ -201,49 +230,62 @@ const ServiceDashboard = () => {
           startIcon={<RefreshIcon />}
           onClick={fetchData}
           disabled={loading}
+          sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 'bold' }}
         >
           Actualiser
         </Button>
       </Box>
 
-      {/* Statistiques */}
+      {/* Statistiques Modernisées */}
       {stats && (
-        <Grid container spacing={2} sx={{ mb: 3 }}>
-          <Grid item xs={12} sm={4}>
-            <Card sx={{ bgcolor: 'warning.light' }}>
-              <CardContent sx={{ display: 'flex', alignItems: 'center' }}>
-                <PendingIcon sx={{ fontSize: 48, color: 'warning.dark', mr: 2 }} />
+        <Grid container spacing={3} sx={{ mb: 4 }}>
+          <Grid size={{ xs: 12, sm: 4 }}>
+            <Card {...cardStyle}>
+              <CardContent sx={{ display: 'flex', alignItems: 'center', p: 3 }}>
+                <Box sx={{ bgcolor: '#fff3e0', width: 64, height: 64, borderRadius: 3, display: 'flex', alignItems: 'center', justifyContent: 'center', mr: 2 }}>
+                  <PendingIcon sx={{ fontSize: 32, color: '#ed6c02' }} />
+                </Box>
                 <Box>
-                  <Typography variant="h3" color="warning.dark">
+                  <Typography variant="h4" fontWeight="bold" color="textPrimary">
                     {stats.summary.pending}
                   </Typography>
-                  <Typography color="warning.dark">En attente</Typography>
+                  <Typography color="textSecondary" variant="body2" fontWeight="medium">
+                    En attente
+                  </Typography>
                 </Box>
               </CardContent>
             </Card>
           </Grid>
-          <Grid item xs={12} sm={4}>
-            <Card sx={{ bgcolor: 'info.light' }}>
-              <CardContent sx={{ display: 'flex', alignItems: 'center' }}>
-                <InProgressIcon sx={{ fontSize: 48, color: 'info.dark', mr: 2 }} />
+          <Grid size={{ xs: 12, sm: 4 }}>
+            <Card {...cardStyle}>
+              <CardContent sx={{ display: 'flex', alignItems: 'center', p: 3 }}>
+                <Box sx={{ bgcolor: '#e3f2fd', width: 64, height: 64, borderRadius: 3, display: 'flex', alignItems: 'center', justifyContent: 'center', mr: 2 }}>
+                  <InProgressIcon sx={{ fontSize: 32, color: '#1976d2' }} />
+                </Box>
                 <Box>
-                  <Typography variant="h3" color="info.dark">
+                  <Typography variant="h4" fontWeight="bold" color="textPrimary">
                     {stats.summary.inProgress}
                   </Typography>
-                  <Typography color="info.dark">En cours</Typography>
+                  <Typography color="textSecondary" variant="body2" fontWeight="medium">
+                    En cours
+                  </Typography>
                 </Box>
               </CardContent>
             </Card>
           </Grid>
-          <Grid item xs={12} sm={4}>
-            <Card sx={{ bgcolor: 'success.light' }}>
-              <CardContent sx={{ display: 'flex', alignItems: 'center' }}>
-                <CompletedIcon sx={{ fontSize: 48, color: 'success.dark', mr: 2 }} />
+          <Grid size={{ xs: 12, sm: 4 }}>
+            <Card {...cardStyle}>
+              <CardContent sx={{ display: 'flex', alignItems: 'center', p: 3 }}>
+                <Box sx={{ bgcolor: '#e8f5e9', width: 64, height: 64, borderRadius: 3, display: 'flex', alignItems: 'center', justifyContent: 'center', mr: 2 }}>
+                  <CompletedIcon sx={{ fontSize: 32, color: '#2e7d32' }} />
+                </Box>
                 <Box>
-                  <Typography variant="h3" color="success.dark">
+                  <Typography variant="h4" fontWeight="bold" color="textPrimary">
                     {stats.summary.myCompletedToday}
                   </Typography>
-                  <Typography color="success.dark">Mes termines (aujourd'hui)</Typography>
+                  <Typography color="textSecondary" variant="body2" fontWeight="medium">
+                    Mes terminés (aujourd'hui)
+                  </Typography>
                 </Box>
               </CardContent>
             </Card>
@@ -252,13 +294,18 @@ const ServiceDashboard = () => {
       )}
 
       {/* Onglets */}
-      <Paper sx={{ mb: 3 }}>
+      <Paper elevation={0} sx={{ mb: 4, borderRadius: 4, boxShadow: '0 4px 20px rgba(0,0,0,0.03)', overflow: 'hidden' }}>
         <Tabs
           value={activeTab}
           onChange={(e, v) => setActiveTab(v)}
           indicatorColor="primary"
           textColor="primary"
           variant="fullWidth"
+          sx={{
+            px: 2,
+            pt: 1,
+            '& .MuiTab-root': { fontWeight: 'bold', textTransform: 'none', minHeight: 60, fontSize: '1rem' }
+          }}
         >
           <Tab
             icon={<ScanIcon />}
@@ -286,13 +333,13 @@ const ServiceDashboard = () => {
       {/* Contenu des onglets */}
       {activeTab === 0 && (
         <Grid container spacing={3}>
-          <Grid item xs={12} md={5}>
+          <Grid size={{ xs: 12, md: 5 }}>
             <QRScanner
               onScanSuccess={handleScanSuccess}
               onScanError={(err) => showSnackbar(err, 'error')}
             />
           </Grid>
-          <Grid item xs={12} md={7}>
+          <Grid size={{ xs: 12, md: 7 }}>
             {scannedPatient ? (
               <PatientExamCard
                 patient={scannedPatient.patient}
@@ -305,10 +352,24 @@ const ServiceDashboard = () => {
                 loading={loading}
               />
             ) : (
-              <Paper sx={{ p: 4, textAlign: 'center', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Paper
+                elevation={0}
+                sx={{
+                  p: 5,
+                  textAlign: 'center',
+                  height: '100%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  borderRadius: 4,
+                  boxShadow: '0 4px 20px rgba(0,0,0,0.03)'
+                }}
+              >
                 <Box>
-                  <ScanIcon sx={{ fontSize: 64, color: 'grey.400', mb: 2 }} />
-                  <Typography color="textSecondary" variant="h6">
+                  <Box sx={{ bgcolor: '#f8fafc', width: 96, height: 96, borderRadius: 3, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto', mb: 3 }}>
+                    <ScanIcon sx={{ fontSize: 48, color: 'text.disabled' }} />
+                  </Box>
+                  <Typography color="textSecondary" variant="h6" fontWeight="bold">
                     Scannez un QR code pour afficher les informations du patient
                   </Typography>
                 </Box>
@@ -325,6 +386,7 @@ const ServiceDashboard = () => {
           onStartExam={handleStartExam}
           onRefresh={fetchPendingExams}
           onViewResults={handleViewResults}
+          onShowSteps={handleShowSteps}
           loading={loading}
         />
       )}
@@ -336,6 +398,7 @@ const ServiceDashboard = () => {
           onCompleteExam={handleCompleteExam}
           onUploadResult={handleUploadResult}
           onViewResults={handleViewResults}
+          onShowSteps={handleShowSteps}
           onRefresh={fetchInProgressExams}
           loading={loading}
         />
@@ -348,6 +411,7 @@ const ServiceDashboard = () => {
           onCompleteExam={handleCompleteExam}
           onUploadResult={handleUploadResult}
           onViewResults={handleViewResults}
+          onShowSteps={handleShowSteps}
           onRefresh={fetchMyExams}
           loading={loading}
         />
@@ -365,6 +429,7 @@ const ServiceDashboard = () => {
           severity={snackbar.severity}
           variant="filled"
           elevation={6}
+          sx={{ borderRadius: 2, fontWeight: 'bold' }}
         >
           {snackbar.message}
         </Alert>
@@ -377,6 +442,19 @@ const ServiceDashboard = () => {
         prescriptionExamId={uploadDialog.examId}
         examName={uploadDialog.examName}
         onUploadSuccess={handleUploadSuccess}
+      />
+
+      {/* Circuit de realisation configure pour le service */}
+      <ExamSteps
+        open={stepsDialog.open}
+        onClose={() => setStepsDialog({ open: false, examId: null, examName: '', patientName: '' })}
+        examId={stepsDialog.examId}
+        examName={stepsDialog.examName}
+        patientName={stepsDialog.patientName}
+        onCompleted={() => {
+          showSnackbar('Examen clôturé par l\'étape finale', 'success');
+          fetchData();
+        }}
       />
 
       {/* Dialog de visualisation des resultats */}

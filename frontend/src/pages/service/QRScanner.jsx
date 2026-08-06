@@ -10,9 +10,9 @@ import {
   Divider
 } from '@mui/material';
 import {
-  CameraAlt as CameraIcon,
-  Stop as StopIcon,
-  QrCode as QrCodeIcon
+  CameraAltRounded as CameraIcon,
+  StopRounded as StopIcon,
+  QrCode2Rounded as QrCodeIcon
 } from '@mui/icons-material';
 
 const QRScanner = ({ onScanSuccess, onScanError }) => {
@@ -72,31 +72,38 @@ const QRScanner = ({ onScanSuccess, onScanError }) => {
   };
 
   return (
-    <Paper sx={{ p: 3 }}>
-      <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-        <QrCodeIcon color="primary" />
-        Scanner le QR Code du Patient
-      </Typography>
+    <Paper elevation={0} sx={{ p: { xs: 3, md: 4 }, borderRadius: 4, boxShadow: '0 4px 20px rgba(0,0,0,0.03)', height: '100%' }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 3 }}>
+        <Box sx={{ bgcolor: '#e3f2fd', width: 40, height: 40, borderRadius: 2, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <QrCodeIcon sx={{ fontSize: 22, color: '#1976d2' }} />
+        </Box>
+        <Typography variant="h6" fontWeight="bold">
+          Scanner le QR Code du Patient
+        </Typography>
+      </Box>
 
-      <Box sx={{ textAlign: 'center', my: 2 }}>
+      <Box sx={{ textAlign: 'center', my: 3 }}>
         {!scanning ? (
           <Button
             variant="contained"
             size="large"
             startIcon={<CameraIcon />}
             onClick={startScan}
-            sx={{ minWidth: 200 }}
+            sx={{ minWidth: 220, borderRadius: 2, textTransform: 'none', fontWeight: 'bold', py: 1.5, boxShadow: 'none' }}
           >
-            Demarrer le Scan
+            Démarrer le Scan
           </Button>
         ) : (
           <Box>
-            <div
+            <Box
               id="qr-reader"
-              style={{
+              sx={{
                 width: '100%',
                 maxWidth: 400,
-                margin: '0 auto'
+                margin: '0 auto',
+                borderRadius: 3,
+                overflow: 'hidden',
+                '& video, & img': { borderRadius: 2 }
               }}
             />
             <Button
@@ -104,40 +111,41 @@ const QRScanner = ({ onScanSuccess, onScanError }) => {
               color="error"
               startIcon={<StopIcon />}
               onClick={stopScan}
-              sx={{ mt: 2 }}
+              sx={{ mt: 2, borderRadius: 2, textTransform: 'none', fontWeight: 'bold' }}
             >
-              Arreter le Scan
+              Arrêter le Scan
             </Button>
           </Box>
         )}
       </Box>
 
       <Divider sx={{ my: 3 }}>
-        <Typography variant="body2" color="textSecondary">
+        <Typography variant="caption" color="textSecondary" fontWeight="bold">
           ou saisir manuellement
         </Typography>
       </Divider>
 
-      <Box sx={{ display: 'flex', gap: 1 }}>
+      <Box sx={{ display: 'flex', gap: 1.5 }}>
         <TextField
           fullWidth
-          size="small"
-          placeholder="Coller les donnees du QR code ici..."
+          placeholder="Coller les données du QR code ici..."
           value={manualInput}
           onChange={(e) => setManualInput(e.target.value)}
-          onKeyPress={(e) => e.key === 'Enter' && handleManualSubmit()}
+          onKeyDown={(e) => e.key === 'Enter' && handleManualSubmit()}
+          sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
         />
         <Button
           variant="outlined"
           onClick={handleManualSubmit}
           disabled={!manualInput.trim()}
+          sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 'bold', minWidth: 110 }}
         >
           Valider
         </Button>
       </Box>
 
-      <Alert severity="info" sx={{ mt: 2 }}>
-        Placez le QR code du patient devant la camera pour charger ses examens
+      <Alert severity="info" sx={{ mt: 3, borderRadius: 2 }}>
+        Placez le QR code du patient devant la caméra pour charger ses examens
       </Alert>
     </Paper>
   );

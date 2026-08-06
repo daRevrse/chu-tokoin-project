@@ -7,9 +7,9 @@ const Prescription = sequelize.define('Prescription', {
     defaultValue: DataTypes.UUIDV4,
     primaryKey: true
   },
+  // Unicite declaree via un index nomme (voir `indexes` plus bas)
   prescriptionNumber: {
     type: DataTypes.STRING(30),
-    unique: true,
     allowNull: false
   },
   patientId: {
@@ -47,6 +47,9 @@ const Prescription = sequelize.define('Prescription', {
 }, {
   tableName: 'prescriptions',
   timestamps: true,
+  indexes: [
+    { unique: true, fields: ['prescriptionNumber'], name: 'prescriptionNumber' }
+  ],
   hooks: {
     beforeValidate: async (prescription) => {
       // Generation automatique du numero de prescription si non defini

@@ -18,11 +18,12 @@ import {
   Collapse
 } from '@mui/material';
 import {
-  Search as SearchIcon,
-  Payment as PaymentIcon,
-  ExpandMore as ExpandMoreIcon,
-  ExpandLess as ExpandLessIcon,
-  Refresh as RefreshIcon
+  SearchRounded as SearchIcon,
+  PaymentRounded as PaymentIcon,
+  ExpandMoreRounded as ExpandMoreIcon,
+  ExpandLessRounded as ExpandLessIcon,
+  RefreshRounded as RefreshIcon,
+  InboxRounded as EmptyIcon
 } from '@mui/icons-material';
 import api from '../../services/api';
 
@@ -83,14 +84,15 @@ const PendingPrescriptions = ({ onSelectPrescription }) => {
 
   return (
     <Box>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h6">
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, gap: 2, flexWrap: 'wrap' }}>
+        <Typography variant="h6" fontWeight="bold">
           Prescriptions en Attente de Paiement
         </Typography>
         <Button
           startIcon={<RefreshIcon />}
           onClick={fetchPendingPrescriptions}
           disabled={loading}
+          sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 'bold', color: 'text.secondary' }}
         >
           Actualiser
         </Button>
@@ -98,45 +100,48 @@ const PendingPrescriptions = ({ onSelectPrescription }) => {
 
       <TextField
         fullWidth
-        placeholder="Rechercher par numero, nom patient..."
+        placeholder="Rechercher par numéro, nom patient..."
         value={searchTerm}
         onChange={(e) => setSearchTerm(e.target.value)}
-        sx={{ mb: 2 }}
+        sx={{ mb: 3, '& .MuiOutlinedInput-root': { borderRadius: 2, bgcolor: 'white' } }}
         InputProps={{
           startAdornment: (
             <InputAdornment position="start">
-              <SearchIcon />
+              <SearchIcon color="action" />
             </InputAdornment>
           )
         }}
       />
 
-      <TableContainer component={Paper}>
+      <TableContainer component={Paper} elevation={0} sx={{ borderRadius: 3, border: '1px solid', borderColor: 'divider' }}>
         <Table>
-          <TableHead>
+          <TableHead sx={{ bgcolor: '#f8fafc' }}>
             <TableRow>
-              <TableCell width={50}></TableCell>
-              <TableCell>N° Prescription</TableCell>
-              <TableCell>Patient</TableCell>
-              <TableCell>Medecin</TableCell>
-              <TableCell>Date</TableCell>
-              <TableCell align="right">Montant</TableCell>
-              <TableCell align="center">Action</TableCell>
+              <TableCell width={50} />
+              <TableCell sx={{ fontWeight: 'bold' }}>N° Prescription</TableCell>
+              <TableCell sx={{ fontWeight: 'bold' }}>Patient</TableCell>
+              <TableCell sx={{ fontWeight: 'bold' }}>Médecin</TableCell>
+              <TableCell sx={{ fontWeight: 'bold' }}>Date</TableCell>
+              <TableCell align="right" sx={{ fontWeight: 'bold' }}>Montant</TableCell>
+              <TableCell align="center" sx={{ fontWeight: 'bold' }}>Action</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
             {loading ? (
               <TableRow>
                 <TableCell colSpan={7} align="center">
-                  <Typography sx={{ py: 3 }}>Chargement...</Typography>
+                  <Typography color="textSecondary" sx={{ py: 6 }}>Chargement...</Typography>
                 </TableCell>
               </TableRow>
             ) : filteredPrescriptions.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={7} align="center">
-                  <Typography color="textSecondary" sx={{ py: 3 }}>
-                    Aucune prescription en attente
-                  </Typography>
+                  <Box sx={{ py: 6 }}>
+                    <EmptyIcon sx={{ fontSize: 60, color: 'text.disabled', mb: 2 }} />
+                    <Typography color="textSecondary">
+                      Aucune prescription en attente
+                    </Typography>
+                  </Box>
                 </TableCell>
               </TableRow>
             ) : (
@@ -147,6 +152,7 @@ const PendingPrescriptions = ({ onSelectPrescription }) => {
                       <IconButton
                         size="small"
                         onClick={() => toggleExpand(prescription.id)}
+                        sx={{ color: 'text.secondary', '&:hover': { bgcolor: '#f5f7fb' } }}
                       >
                         {expandedRow === prescription.id ? <ExpandLessIcon /> : <ExpandMoreIcon />}
                       </IconButton>
@@ -156,20 +162,21 @@ const PendingPrescriptions = ({ onSelectPrescription }) => {
                         label={prescription.prescriptionNumber}
                         color="warning"
                         size="small"
+                        sx={{ fontWeight: 'bold' }}
                       />
                     </TableCell>
                     <TableCell>
-                      <Typography fontWeight="medium">
+                      <Typography fontWeight="bold" variant="body2">
                         {prescription.patient?.lastName} {prescription.patient?.firstName}
                       </Typography>
                       <Typography variant="caption" color="textSecondary">
                         {prescription.patient?.patientNumber}
                       </Typography>
                     </TableCell>
-                    <TableCell>
+                    <TableCell sx={{ color: 'text.secondary' }}>
                       Dr. {prescription.doctor?.lastName}
                     </TableCell>
-                    <TableCell>
+                    <TableCell sx={{ color: 'text.secondary' }}>
                       {formatDate(prescription.createdAt)}
                     </TableCell>
                     <TableCell align="right">
@@ -184,6 +191,7 @@ const PendingPrescriptions = ({ onSelectPrescription }) => {
                         size="small"
                         startIcon={<PaymentIcon />}
                         onClick={() => onSelectPrescription(prescription)}
+                        sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 'bold', boxShadow: 'none' }}
                       >
                         Encaisser
                       </Button>
@@ -192,24 +200,25 @@ const PendingPrescriptions = ({ onSelectPrescription }) => {
                   <TableRow>
                     <TableCell colSpan={7} sx={{ py: 0, borderBottom: expandedRow === prescription.id ? 1 : 0 }}>
                       <Collapse in={expandedRow === prescription.id} timeout="auto" unmountOnExit>
-                        <Box sx={{ py: 2, px: 4, bgcolor: 'grey.50' }}>
-                          <Typography variant="subtitle2" gutterBottom>
-                            Examens prescrits:
+                        <Box sx={{ my: 2, p: 3, bgcolor: '#f8fafc', borderRadius: 3 }}>
+                          <Typography variant="subtitle2" fontWeight="bold" gutterBottom>
+                            Examens prescrits
                           </Typography>
                           <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
                             {prescription.prescriptionExams?.map((pe) => (
                               <Chip
                                 key={pe.id}
-                                label={`${pe.exam?.name} - ${formatPrice(pe.exam?.price)}`}
+                                label={`${pe.exam?.name} — ${formatPrice(pe.exam?.price)}`}
                                 variant="outlined"
                                 size="small"
+                                sx={{ bgcolor: 'white', fontWeight: 'medium' }}
                               />
                             ))}
                           </Box>
                           {prescription.notes && (
-                            <Box sx={{ mt: 2 }}>
-                              <Typography variant="subtitle2" gutterBottom>
-                                Notes:
+                            <Box sx={{ mt: 3 }}>
+                              <Typography variant="subtitle2" fontWeight="bold" gutterBottom>
+                                Notes
                               </Typography>
                               <Typography variant="body2" color="textSecondary">
                                 {prescription.notes}

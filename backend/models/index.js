@@ -7,6 +7,10 @@ const PrescriptionExam = require('./PrescriptionExam');
 const Payment = require('./Payment');
 const Result = require('./Result');
 const MobileMoneyTransaction = require('./MobileMoneyTransaction');
+const Service = require('./Service');
+const ExamCategory = require('./ExamCategory');
+const ServiceStep = require('./ServiceStep');
+const ExamStepProgress = require('./ExamStepProgress');
 
 // ==========================================
 // ASSOCIATIONS
@@ -122,6 +126,80 @@ MobileMoneyTransaction.belongsTo(Payment, {
   as: 'payment'
 });
 
+// Service - ExamCategory
+Service.hasMany(ExamCategory, {
+  foreignKey: 'serviceId',
+  as: 'categories'
+});
+ExamCategory.belongsTo(Service, {
+  foreignKey: 'serviceId',
+  as: 'service'
+});
+
+// Service - Exam
+Service.hasMany(Exam, {
+  foreignKey: 'serviceId',
+  as: 'exams'
+});
+Exam.belongsTo(Service, {
+  foreignKey: 'serviceId',
+  as: 'service'
+});
+
+// ExamCategory - Exam
+ExamCategory.hasMany(Exam, {
+  foreignKey: 'categoryId',
+  as: 'exams'
+});
+Exam.belongsTo(ExamCategory, {
+  foreignKey: 'categoryId',
+  as: 'examCategory'
+});
+
+// Service - User (personnel affecte au service)
+Service.hasMany(User, {
+  foreignKey: 'serviceId',
+  as: 'staff'
+});
+User.belongsTo(Service, {
+  foreignKey: 'serviceId',
+  as: 'service'
+});
+
+// Service - ServiceStep (etapes de realisation propres au service)
+Service.hasMany(ServiceStep, {
+  foreignKey: 'serviceId',
+  as: 'steps'
+});
+ServiceStep.belongsTo(Service, {
+  foreignKey: 'serviceId',
+  as: 'service'
+});
+
+// PrescriptionExam - ExamStepProgress (avancement etape par etape)
+PrescriptionExam.hasMany(ExamStepProgress, {
+  foreignKey: 'prescriptionExamId',
+  as: 'stepProgress'
+});
+ExamStepProgress.belongsTo(PrescriptionExam, {
+  foreignKey: 'prescriptionExamId',
+  as: 'prescriptionExam'
+});
+
+ServiceStep.hasMany(ExamStepProgress, {
+  foreignKey: 'serviceStepId',
+  as: 'progress'
+});
+ExamStepProgress.belongsTo(ServiceStep, {
+  foreignKey: 'serviceStepId',
+  as: 'step'
+});
+
+ExamStepProgress.belongsTo(User, {
+  foreignKey: 'performedBy',
+  as: 'performer'
+});
+
 // ==========================================
 // SYNCHRONISATION
 // ==========================================
@@ -147,5 +225,9 @@ module.exports = {
   Payment,
   Result,
   MobileMoneyTransaction,
+  Service,
+  ExamCategory,
+  ServiceStep,
+  ExamStepProgress,
   syncDatabase
 };

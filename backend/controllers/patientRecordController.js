@@ -1,4 +1,4 @@
-const { Patient, Prescription, PrescriptionExam, Exam, Result, User, Payment } = require('../models');
+const { Patient, Prescription, PrescriptionExam, Exam, Result, User, Payment, Service } = require('../models');
 const logger = require('../utils/logger');
 const { Op } = require('sequelize');
 
@@ -29,7 +29,8 @@ const patientRecordController = {
                   {
                     model: Exam,
                     as: 'exam',
-                    attributes: ['id', 'name', 'code', 'category']
+                    attributes: ['id', 'name', 'code', 'category', 'serviceId'],
+                    include: [{ model: Service, as: 'service', attributes: ['id', 'code', 'name', 'color'] }]
                   },
                   {
                     model: User,
@@ -137,7 +138,8 @@ const patientRecordController = {
                 model: Exam,
                 as: 'exam',
                 where: Object.keys(examWhere).length > 0 ? examWhere : undefined,
-                attributes: ['id', 'name', 'code', 'category']
+                attributes: ['id', 'name', 'code', 'category', 'serviceId'],
+                include: [{ model: Service, as: 'service', attributes: ['id', 'code', 'name', 'color'] }]
               },
               {
                 model: Result,
@@ -221,7 +223,8 @@ const patientRecordController = {
               {
                 model: Exam,
                 as: 'exam',
-                attributes: ['id', 'name', 'code', 'category']
+                attributes: ['id', 'name', 'code', 'category', 'serviceId'],
+                include: [{ model: Service, as: 'service', attributes: ['id', 'code', 'name', 'color'] }]
               },
               {
                 model: Result,

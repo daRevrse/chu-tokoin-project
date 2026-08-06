@@ -78,7 +78,7 @@ const Dashboard = () => {
       {/* Grille des cartes */}
       <Grid container spacing={3}>
         {userCard && (
-          <Grid item xs={12} sm={6} md={4}>
+          <Grid size={{ xs: 12, sm: 6, md: 4 }}>
             <Card
               elevation={0}
               sx={{
@@ -124,7 +124,7 @@ const Dashboard = () => {
         {user?.role === 'ADMIN' && Object.entries(roleCards)
           .filter(([key]) => key !== 'ADMIN')
           .map(([key, card]) => (
-            <Grid item xs={12} sm={6} md={4} key={key}>
+            <Grid size={{ xs: 12, sm: 6, md: 4 }} key={key}>
               <Card
                 elevation={0}
                 sx={{

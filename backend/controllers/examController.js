@@ -1,6 +1,56 @@
-const { Exam } = require('../models');
+const { Exam, Service, ExamCategory } = require('../models');
 const { validationResult } = require('express-validator');
 const logger = require('../utils/logger');
+
+// L'ancienne colonne `category` est NOT NULL et sert encore de repli aux
+// ecrans non migres. On la derive du service plutot que de la demander.
+const LEGACY_BY_SERVICE_CODE = {
+  IMAGERIE: 'RADIOLOGY',
+  LABORATOIRE: 'LABORATORY'
+};
+
+/**
+ * Valide et normalise le rattachement d'un examen a un service et, le cas
+ * echeant, a l'une de ses sous-categories.
+ */
+const resolvePlacement = async ({ serviceId, categoryId, category }) => {
+  if (!serviceId) {
+    // Aucun service fourni : on conserve l'ancien fonctionnement par categorie
+    if (!category) {
+      return { error: 'Un service est requis pour cet examen' };
+    }
+    return { serviceId: null, categoryId: null, category };
+  }
+
+  const service = await Service.findByPk(serviceId);
+  if (!service) {
+    return { error: 'Service introuvable' };
+  }
+  if (!service.isActive) {
+    return { error: 'Ce service est desactive' };
+  }
+
+  let resolvedCategoryId = null;
+  if (categoryId) {
+    const examCategory = await ExamCategory.findByPk(categoryId);
+    if (!examCategory) {
+      return { error: 'Sous-categorie introuvable' };
+    }
+    // Une sous-categorie n'a de sens qu'a l'interieur de son propre service
+    if (examCategory.serviceId !== service.id) {
+      return { error: 'Cette sous-categorie n\'appartient pas au service choisi' };
+    }
+    resolvedCategoryId = examCategory.id;
+  }
+
+  return {
+    serviceId: service.id,
+    categoryId: resolvedCategoryId,
+    // Les services ajoutes apres coup n'ont pas d'equivalent historique :
+    // on les rattache par defaut au laboratoire pour satisfaire la colonne.
+    category: LEGACY_BY_SERVICE_CODE[service.code] || category || 'LABORATORY'
+  };
+};
 
 const examController = {
   /**
@@ -9,22 +59,38 @@ const examController = {
    */
   getAll: async (req, res) => {
     try {
-      const { category, active } = req.query;
+      const { category, active, serviceId, categoryId } = req.query;
       const where = {};
 
       if (category) {
         where.category = category;
       }
 
-      if (active !== undefined) {
+      if (serviceId) {
+        where.serviceId = serviceId;
+      }
+
+      if (categoryId) {
+        where.categoryId = categoryId;
+      }
+
+      if (active === 'all') {
+        // Actifs et desactives : utilise par l'ecran d'administration
+      } else if (active !== undefined) {
         where.isActive = active === 'true';
       } else {
         // Par defaut, ne montrer que les examens actifs
         where.isActive = true;
       }
 
+      // Le service est renvoye avec l'examen : les ecrans regroupent les
+      // examens par service plutot que par l'ancienne categorie figee.
       const exams = await Exam.findAll({
         where,
+        include: [
+          { model: Service, as: 'service', attributes: ['id', 'code', 'name', 'color', 'displayOrder'] },
+          { model: ExamCategory, as: 'examCategory', attributes: ['id', 'code', 'name', 'displayOrder'] }
+        ],
         order: [['category', 'ASC'], ['name', 'ASC']]
       });
 
@@ -71,7 +137,7 @@ const examController = {
         return res.status(400).json({ errors: errors.array() });
       }
 
-      const { code, name, category, price, description } = req.body;
+      const { code, name, category, price, description, serviceId, categoryId } = req.body;
 
       // Verifier si le code existe deja
       const existingExam = await Exam.findOne({ where: { code } });
@@ -81,10 +147,17 @@ const examController = {
         });
       }
 
+      const placement = await resolvePlacement({ serviceId, categoryId, category });
+      if (placement.error) {
+        return res.status(400).json({ error: placement.error });
+      }
+
       const exam = await Exam.create({
         code,
         name,
-        category,
+        category: placement.category,
+        serviceId: placement.serviceId,
+        categoryId: placement.categoryId,
         price,
         description
       });
@@ -117,13 +190,31 @@ const examController = {
         });
       }
 
-      const { name, price, description, isActive } = req.body;
+      const { name, price, description, isActive, serviceId, categoryId } = req.body;
+
+      // Le rattachement n'est recalcule que s'il est explicitement fourni
+      let placement = null;
+      if (serviceId !== undefined || categoryId !== undefined) {
+        placement = await resolvePlacement({
+          serviceId: serviceId !== undefined ? serviceId : exam.serviceId,
+          categoryId: categoryId !== undefined ? categoryId : exam.categoryId,
+          category: exam.category
+        });
+        if (placement.error) {
+          return res.status(400).json({ error: placement.error });
+        }
+      }
 
       await exam.update({
         name: name || exam.name,
         price: price !== undefined ? price : exam.price,
         description: description !== undefined ? description : exam.description,
-        isActive: isActive !== undefined ? isActive : exam.isActive
+        isActive: isActive !== undefined ? isActive : exam.isActive,
+        ...(placement ? {
+          serviceId: placement.serviceId,
+          categoryId: placement.categoryId,
+          category: placement.category
+        } : {})
       });
 
       logger.info('Examen mis a jour', { examId: exam.id });

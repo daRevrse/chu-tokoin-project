@@ -26,19 +26,33 @@ import {
   Snackbar
 } from '@mui/material';
 import {
-  ArrowBack as BackIcon,
-  Cancel as CancelIcon,
-  Download as DownloadIcon,
-  CheckCircle as ValidatedIcon,
-  PictureAsPdf as PdfIcon,
-  Image as ImageIcon,
-  Description as FileIcon,
-  Person as PersonIcon,
-  CalendarToday as DateIcon,
-  Payment as PaymentIcon,
-  Print as PrintIcon
+  ArrowBackRounded as BackIcon,
+  CancelRounded as CancelIcon,
+  DownloadRounded as DownloadIcon,
+  CheckCircleRounded as ValidatedIcon,
+  PictureAsPdfRounded as PdfIcon,
+  ImageRounded as ImageIcon,
+  DescriptionRounded as FileIcon,
+  PersonRounded as PersonIcon,
+  CalendarTodayRounded as DateIcon,
+  PaymentRounded as PaymentIcon,
+  PrintRounded as PrintIcon,
+  ScienceRounded as ExamIcon,
+  FactCheckRounded as ResultIcon
 } from '@mui/icons-material';
 import api from '../../services/api';
+
+// Libelle du service realisant l'examen. Repli sur l'ancienne categorie pour
+// les examens qui ne sont pas encore rattaches a un service.
+const getServiceLabel = (exam) => {
+  if (exam?.service?.name) return exam.service.name;
+  return exam?.category === 'RADIOLOGY' ? 'Radiologie' : 'Laboratoire';
+};
+
+const getServiceColor = (exam) => {
+  if (exam?.service?.color) return exam.service.color;
+  return exam?.category === 'RADIOLOGY' ? '#0288d1' : '#9c27b0';
+};
 
 const PrescriptionDetail = ({ prescriptionId, onBack, onRefresh }) => {
   const [prescription, setPrescription] = useState(null);
@@ -85,7 +99,7 @@ const PrescriptionDetail = ({ prescriptionId, onBack, onRefresh }) => {
     setCancelling(true);
     try {
       await api.patch(`/prescriptions/${prescriptionId}/cancel`);
-      showSnackbar('Prescription annulee avec succes', 'success');
+      showSnackbar('Prescription annulée avec succès', 'success');
       setCancelDialog(false);
       fetchPrescription();
       if (onRefresh) onRefresh();
@@ -110,14 +124,14 @@ const PrescriptionDetail = ({ prescriptionId, onBack, onRefresh }) => {
       link.remove();
       window.URL.revokeObjectURL(url);
     } catch {
-      showSnackbar('Erreur lors du telechargement', 'error');
+      showSnackbar('Erreur lors du téléchargement', 'error');
     }
   };
 
   const handleValidateResult = async (resultId, peId) => {
     try {
       await api.patch(`/results/${resultId}/validate`);
-      showSnackbar('Resultat valide avec succes', 'success');
+      showSnackbar('Résultat validé avec succès', 'success');
       // Update local state
       setExamResults(prev => ({
         ...prev,
@@ -144,7 +158,7 @@ const PrescriptionDetail = ({ prescriptionId, onBack, onRefresh }) => {
       link.remove();
       window.URL.revokeObjectURL(url);
     } catch {
-      showSnackbar('Erreur lors du telechargement du PDF', 'error');
+      showSnackbar('Erreur lors du téléchargement du PDF', 'error');
     }
   };
 
@@ -181,10 +195,10 @@ const PrescriptionDetail = ({ prescriptionId, onBack, onRefresh }) => {
   const getStatusLabel = (status) => {
     const labels = {
       PENDING: 'En attente',
-      PAID: 'Payee',
+      PAID: 'Payée',
       IN_PROGRESS: 'En cours',
-      COMPLETED: 'Terminee',
-      CANCELLED: 'Annulee'
+      COMPLETED: 'Terminée',
+      CANCELLED: 'Annulée'
     };
     return labels[status] || status;
   };
@@ -207,31 +221,43 @@ const PrescriptionDetail = ({ prescriptionId, onBack, onRefresh }) => {
 
   if (!prescription) {
     return (
-      <Alert severity="error">Prescription non trouvee</Alert>
+      <Alert severity="error" sx={{ borderRadius: 2 }}>Prescription non trouvée</Alert>
     );
   }
+
+  // Styles partagés
+  const paperStyle = {
+    elevation: 0,
+    sx: { p: { xs: 3, md: 4 }, borderRadius: 4, boxShadow: '0 4px 20px rgba(0,0,0,0.03)' }
+  };
 
   return (
     <Box>
       {/* Header */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-          <Button startIcon={<BackIcon />} onClick={onBack}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4, gap: 2, flexWrap: 'wrap' }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
+          <Button
+            startIcon={<BackIcon />}
+            onClick={onBack}
+            sx={{ borderRadius: 2, textTransform: 'none', color: 'text.secondary' }}
+          >
             Retour
           </Button>
-          <Typography variant="h5">
+          <Typography variant="h5" fontWeight="bold">
             Prescription {prescription.prescriptionNumber}
           </Typography>
           <Chip
             label={getStatusLabel(prescription.status)}
             color={getStatusColor(prescription.status)}
+            sx={{ fontWeight: 'bold' }}
           />
         </Box>
-        <Box sx={{ display: 'flex', gap: 1 }}>
+        <Box sx={{ display: 'flex', gap: 1.5 }}>
           <Button
             variant="outlined"
             startIcon={<PrintIcon />}
             onClick={handleDownloadPdf}
+            sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 'bold' }}
           >
             Imprimer PDF
           </Button>
@@ -241,6 +267,7 @@ const PrescriptionDetail = ({ prescriptionId, onBack, onRefresh }) => {
               color="error"
               startIcon={<CancelIcon />}
               onClick={() => setCancelDialog(true)}
+              sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 'bold' }}
             >
               Annuler
             </Button>
@@ -250,63 +277,67 @@ const PrescriptionDetail = ({ prescriptionId, onBack, onRefresh }) => {
 
       {/* Patient & Doctor Info */}
       <Grid container spacing={3} sx={{ mb: 3 }}>
-        <Grid item xs={12} md={6}>
-          <Card>
-            <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-                <PersonIcon color="primary" />
-                <Typography variant="h6">Patient</Typography>
+        <Grid size={{ xs: 12, md: 6 }}>
+          <Card elevation={0} sx={{ height: '100%', borderRadius: 4, boxShadow: '0 4px 20px rgba(0,0,0,0.03)' }}>
+            <CardContent sx={{ p: 3 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 3 }}>
+                <Box sx={{ bgcolor: '#e3f2fd', width: 40, height: 40, borderRadius: 2, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <PersonIcon sx={{ fontSize: 22, color: '#1976d2' }} />
+                </Box>
+                <Typography variant="h6" fontWeight="bold">Patient</Typography>
               </Box>
-              <Grid container spacing={1}>
-                <Grid item xs={6}>
-                  <Typography variant="caption" color="textSecondary">Nom</Typography>
+              <Grid container spacing={2}>
+                <Grid size={6}>
+                  <Typography variant="caption" color="textSecondary" fontWeight="bold" display="block">Nom</Typography>
                   <Typography fontWeight="bold">
                     {prescription.patient?.lastName} {prescription.patient?.firstName}
                   </Typography>
                 </Grid>
-                <Grid item xs={6}>
-                  <Typography variant="caption" color="textSecondary">N° Patient</Typography>
-                  <Typography>{prescription.patient?.patientNumber}</Typography>
+                <Grid size={6}>
+                  <Typography variant="caption" color="textSecondary" fontWeight="bold" display="block">N° Patient</Typography>
+                  <Typography fontWeight="bold">{prescription.patient?.patientNumber}</Typography>
                 </Grid>
-                <Grid item xs={6}>
-                  <Typography variant="caption" color="textSecondary">Telephone</Typography>
-                  <Typography>{prescription.patient?.phone || '-'}</Typography>
+                <Grid size={6}>
+                  <Typography variant="caption" color="textSecondary" fontWeight="bold" display="block">Téléphone</Typography>
+                  <Typography fontWeight="bold">{prescription.patient?.phone || '-'}</Typography>
                 </Grid>
-                <Grid item xs={6}>
-                  <Typography variant="caption" color="textSecondary">Sexe</Typography>
-                  <Typography>{prescription.patient?.gender === 'M' ? 'Homme' : 'Femme'}</Typography>
+                <Grid size={6}>
+                  <Typography variant="caption" color="textSecondary" fontWeight="bold" display="block">Sexe</Typography>
+                  <Typography fontWeight="bold">{prescription.patient?.gender === 'M' ? 'Homme' : 'Femme'}</Typography>
                 </Grid>
               </Grid>
             </CardContent>
           </Card>
         </Grid>
-        <Grid item xs={12} md={6}>
-          <Card>
-            <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-                <DateIcon color="primary" />
-                <Typography variant="h6">Informations</Typography>
+        <Grid size={{ xs: 12, md: 6 }}>
+          <Card elevation={0} sx={{ height: '100%', borderRadius: 4, boxShadow: '0 4px 20px rgba(0,0,0,0.03)' }}>
+            <CardContent sx={{ p: 3 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 3 }}>
+                <Box sx={{ bgcolor: '#f3e5f5', width: 40, height: 40, borderRadius: 2, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <DateIcon sx={{ fontSize: 20, color: '#9c27b0' }} />
+                </Box>
+                <Typography variant="h6" fontWeight="bold">Informations</Typography>
               </Box>
-              <Grid container spacing={1}>
-                <Grid item xs={6}>
-                  <Typography variant="caption" color="textSecondary">Date</Typography>
-                  <Typography>{formatDate(prescription.createdAt)}</Typography>
+              <Grid container spacing={2}>
+                <Grid size={6}>
+                  <Typography variant="caption" color="textSecondary" fontWeight="bold" display="block">Date</Typography>
+                  <Typography fontWeight="bold">{formatDate(prescription.createdAt)}</Typography>
                 </Grid>
-                <Grid item xs={6}>
-                  <Typography variant="caption" color="textSecondary">Medecin</Typography>
-                  <Typography>
+                <Grid size={6}>
+                  <Typography variant="caption" color="textSecondary" fontWeight="bold" display="block">Médecin</Typography>
+                  <Typography fontWeight="bold">
                     Dr. {prescription.doctor?.lastName} {prescription.doctor?.firstName}
                   </Typography>
                 </Grid>
-                <Grid item xs={6}>
-                  <Typography variant="caption" color="textSecondary">Montant Total</Typography>
+                <Grid size={6}>
+                  <Typography variant="caption" color="textSecondary" fontWeight="bold" display="block">Montant Total</Typography>
                   <Typography fontWeight="bold" color="primary">
                     {formatPrice(prescription.totalAmount)}
                   </Typography>
                 </Grid>
-                <Grid item xs={6}>
-                  <Typography variant="caption" color="textSecondary">Nb Examens</Typography>
-                  <Typography>{prescription.prescriptionExams?.length || 0}</Typography>
+                <Grid size={6}>
+                  <Typography variant="caption" color="textSecondary" fontWeight="bold" display="block">Nb Examens</Typography>
+                  <Typography fontWeight="bold">{prescription.prescriptionExams?.length || 0}</Typography>
                 </Grid>
               </Grid>
             </CardContent>
@@ -316,8 +347,8 @@ const PrescriptionDetail = ({ prescriptionId, onBack, onRefresh }) => {
 
       {/* Notes */}
       {prescription.notes && (
-        <Paper sx={{ p: 2, mb: 3 }}>
-          <Typography variant="subtitle2" color="textSecondary" gutterBottom>
+        <Paper elevation={0} sx={{ p: 3, mb: 3, borderRadius: 4, boxShadow: '0 4px 20px rgba(0,0,0,0.03)' }}>
+          <Typography variant="caption" color="textSecondary" fontWeight="bold" display="block" sx={{ mb: 1 }}>
             Notes / Observations
           </Typography>
           <Typography>{prescription.notes}</Typography>
@@ -325,56 +356,68 @@ const PrescriptionDetail = ({ prescriptionId, onBack, onRefresh }) => {
       )}
 
       {/* Examens */}
-      <Paper sx={{ p: 3, mb: 3 }}>
-        <Typography variant="h6" gutterBottom>
-          Examens Prescrits
-        </Typography>
-        <TableContainer>
+      <Paper {...paperStyle} sx={{ ...paperStyle.sx, mb: 3 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 3 }}>
+          <ExamIcon sx={{ color: 'primary.main' }} />
+          <Typography variant="h6" fontWeight="bold">
+            Examens Prescrits
+          </Typography>
+        </Box>
+        <TableContainer sx={{ borderRadius: 3, border: '1px solid', borderColor: 'divider' }}>
           <Table>
-            <TableHead>
+            <TableHead sx={{ bgcolor: '#f8fafc' }}>
               <TableRow>
-                <TableCell>Code</TableCell>
-                <TableCell>Examen</TableCell>
-                <TableCell>Categorie</TableCell>
-                <TableCell align="right">Prix</TableCell>
-                <TableCell>Statut</TableCell>
-                <TableCell>Realise par</TableCell>
+                <TableCell sx={{ fontWeight: 'bold' }}>Code</TableCell>
+                <TableCell sx={{ fontWeight: 'bold' }}>Examen</TableCell>
+                <TableCell sx={{ fontWeight: 'bold' }}>Catégorie</TableCell>
+                <TableCell align="right" sx={{ fontWeight: 'bold' }}>Prix</TableCell>
+                <TableCell sx={{ fontWeight: 'bold' }}>Statut</TableCell>
+                <TableCell sx={{ fontWeight: 'bold' }}>Réalisé par</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {prescription.prescriptionExams?.map((pe) => (
-                <TableRow key={pe.id}>
+                <TableRow key={pe.id} hover>
                   <TableCell>
-                    <Chip label={pe.exam?.code} size="small" variant="outlined" />
+                    <Chip label={pe.exam?.code} size="small" variant="outlined" sx={{ fontWeight: 'bold', bgcolor: '#f5f7fb' }} />
                   </TableCell>
-                  <TableCell>{pe.exam?.name}</TableCell>
+                  <TableCell>
+                    <Typography fontWeight="bold" variant="body2">{pe.exam?.name}</Typography>
+                  </TableCell>
                   <TableCell>
                     <Chip
-                      label={pe.exam?.category === 'RADIOLOGY' ? 'Radiologie' : 'Laboratoire'}
+                      label={getServiceLabel(pe.exam)}
                       size="small"
-                      color={pe.exam?.category === 'RADIOLOGY' ? 'info' : 'secondary'}
+                      sx={{
+                        fontWeight: 'bold',
+                        bgcolor: `${getServiceColor(pe.exam)}22`,
+                        color: getServiceColor(pe.exam)
+                      }}
                     />
                   </TableCell>
-                  <TableCell align="right">{formatPrice(pe.price)}</TableCell>
+                  <TableCell align="right">
+                    <Typography fontWeight="bold" variant="body2">{formatPrice(pe.price)}</Typography>
+                  </TableCell>
                   <TableCell>
                     <Chip
                       label={getStatusLabel(pe.status)}
                       color={getStatusColor(pe.status)}
                       size="small"
+                      sx={{ fontWeight: 'bold' }}
                     />
                   </TableCell>
-                  <TableCell>
+                  <TableCell sx={{ color: 'text.secondary' }}>
                     {pe.performer
                       ? `${pe.performer.firstName} ${pe.performer.lastName}`
                       : '-'}
                   </TableCell>
                 </TableRow>
               ))}
-              <TableRow>
+              <TableRow sx={{ bgcolor: '#f8fafc', '& td': { border: 0 } }}>
                 <TableCell colSpan={3} />
                 <TableCell align="right">
                   <Typography fontWeight="bold" color="primary">
-                    Total: {formatPrice(prescription.totalAmount)}
+                    Total : {formatPrice(prescription.totalAmount)}
                   </Typography>
                 </TableCell>
                 <TableCell colSpan={2} />
@@ -386,17 +429,21 @@ const PrescriptionDetail = ({ prescriptionId, onBack, onRefresh }) => {
 
       {/* Resultats par examen */}
       {Object.entries(examResults).some(([, results]) => results.length > 0) && (
-        <Paper sx={{ p: 3, mb: 3 }}>
-          <Typography variant="h6" gutterBottom>
-            Resultats
-          </Typography>
-          {prescription.prescriptionExams?.map((pe) => {
+        <Paper {...paperStyle} sx={{ ...paperStyle.sx, mb: 3 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 3 }}>
+            <ResultIcon sx={{ color: 'success.main' }} />
+            <Typography variant="h6" fontWeight="bold">
+              Résultats
+            </Typography>
+          </Box>
+          {prescription.prescriptionExams?.map((pe, index) => {
             const results = examResults[pe.id] || [];
             if (results.length === 0) return null;
 
             return (
-              <Box key={pe.id} sx={{ mb: 2 }}>
-                <Typography variant="subtitle2" sx={{ mb: 1 }}>
+              <Box key={pe.id} sx={{ mb: 3 }}>
+                {index > 0 && <Divider sx={{ mb: 3 }} />}
+                <Typography variant="subtitle2" fontWeight="bold" sx={{ mb: 1.5 }}>
                   {pe.exam?.name} ({pe.exam?.code})
                 </Typography>
                 {results.map((result) => (
@@ -406,51 +453,57 @@ const PrescriptionDetail = ({ prescriptionId, onBack, onRefresh }) => {
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'space-between',
-                      p: 1.5,
-                      bgcolor: result.isValidated ? 'success.50' : 'warning.50',
-                      borderRadius: 1,
-                      mb: 1
+                      gap: 2,
+                      flexWrap: { xs: 'wrap', sm: 'nowrap' },
+                      p: 2,
+                      bgcolor: result.isValidated ? '#e8f5e9' : '#fff3e0',
+                      border: '1px solid',
+                      borderColor: result.isValidated ? '#c8e6c9' : '#ffe0b2',
+                      borderRadius: 3,
+                      mb: 1.5
                     }}
                   >
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5 }}>
                       {getFileIcon(result.fileType)}
                       <Box>
-                        <Typography variant="body2">{result.fileName}</Typography>
+                        <Typography variant="body2" fontWeight="bold">{result.fileName}</Typography>
                         <Typography variant="caption" color="textSecondary">
                           Par {result.uploader?.firstName} {result.uploader?.lastName} le {formatDate(result.uploadDate)}
                         </Typography>
                         {result.conclusion && (
-                          <Typography variant="body2" sx={{ mt: 0.5 }}>
-                            Conclusion: {result.conclusion}
+                          <Typography variant="body2" sx={{ mt: 1 }}>
+                            <Box component="span" fontWeight="bold">Conclusion : </Box>
+                            {result.conclusion}
                           </Typography>
                         )}
                       </Box>
                     </Box>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                       {result.isValidated ? (
-                        <Chip icon={<ValidatedIcon />} label="Valide" size="small" color="success" />
+                        <Chip icon={<ValidatedIcon />} label="Validé" size="small" color="success" sx={{ fontWeight: 'bold' }} />
                       ) : (
                         <Button
                           size="small"
                           variant="contained"
                           color="success"
                           onClick={() => handleValidateResult(result.id, pe.id)}
+                          sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 'bold', boxShadow: 'none' }}
                         >
                           Valider
                         </Button>
                       )}
-                      <Tooltip title="Telecharger">
+                      <Tooltip title="Télécharger" arrow>
                         <IconButton
                           size="small"
                           onClick={() => handleDownloadResult(result.id, result.fileName)}
+                          sx={{ bgcolor: 'white', '&:hover': { bgcolor: '#e3f2fd' } }}
                         >
-                          <DownloadIcon />
+                          <DownloadIcon fontSize="small" />
                         </IconButton>
                       </Tooltip>
                     </Box>
                   </Box>
                 ))}
-                <Divider sx={{ mt: 1 }} />
               </Box>
             );
           })}
@@ -459,38 +512,45 @@ const PrescriptionDetail = ({ prescriptionId, onBack, onRefresh }) => {
 
       {/* Paiements */}
       {prescription.payments && prescription.payments.length > 0 && (
-        <Paper sx={{ p: 3 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-            <PaymentIcon color="primary" />
-            <Typography variant="h6">Paiements</Typography>
+        <Paper {...paperStyle}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 3 }}>
+            <PaymentIcon sx={{ color: 'success.main' }} />
+            <Typography variant="h6" fontWeight="bold">Paiements</Typography>
           </Box>
-          <TableContainer>
-            <Table size="small">
-              <TableHead>
+          <TableContainer sx={{ borderRadius: 3, border: '1px solid', borderColor: 'divider' }}>
+            <Table>
+              <TableHead sx={{ bgcolor: '#f8fafc' }}>
                 <TableRow>
-                  <TableCell>Date</TableCell>
-                  <TableCell>Montant</TableCell>
-                  <TableCell>Mode</TableCell>
-                  <TableCell>Caissier</TableCell>
-                  <TableCell>Statut</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold' }}>Date</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold' }}>Montant</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold' }}>Mode</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold' }}>Caissier</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold' }}>Statut</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {prescription.payments.map((payment) => (
-                  <TableRow key={payment.id}>
-                    <TableCell>{formatDate(payment.paymentDate)}</TableCell>
-                    <TableCell>{formatPrice(payment.amount)}</TableCell>
-                    <TableCell>{payment.paymentMethod}</TableCell>
+                  <TableRow key={payment.id} hover sx={{ '&:last-child td, &:last-child th': { border: 0 } }}>
+                    <TableCell sx={{ color: 'text.secondary' }}>{formatDate(payment.paymentDate)}</TableCell>
                     <TableCell>
+                      <Typography fontWeight="bold" color="success.main" variant="body2">
+                        {formatPrice(payment.amount)}
+                      </Typography>
+                    </TableCell>
+                    <TableCell>
+                      <Chip label={payment.paymentMethod} size="small" variant="outlined" sx={{ bgcolor: '#f5f7fb' }} />
+                    </TableCell>
+                    <TableCell sx={{ color: 'text.secondary' }}>
                       {payment.cashier
                         ? `${payment.cashier.firstName} ${payment.cashier.lastName}`
                         : '-'}
                     </TableCell>
                     <TableCell>
                       <Chip
-                        label={payment.paymentStatus === 'SUCCESS' ? 'Reussi' : payment.paymentStatus}
+                        label={payment.paymentStatus === 'SUCCESS' ? 'Réussi' : payment.paymentStatus}
                         color={payment.paymentStatus === 'SUCCESS' ? 'success' : 'warning'}
                         size="small"
+                        sx={{ fontWeight: 'bold' }}
                       />
                     </TableCell>
                   </TableRow>
@@ -502,21 +562,31 @@ const PrescriptionDetail = ({ prescriptionId, onBack, onRefresh }) => {
       )}
 
       {/* Cancel Dialog */}
-      <Dialog open={cancelDialog} onClose={() => setCancelDialog(false)}>
-        <DialogTitle>Annuler la prescription</DialogTitle>
+      <Dialog
+        open={cancelDialog}
+        onClose={() => setCancelDialog(false)}
+        PaperProps={{ sx: { borderRadius: 4, p: 1, boxShadow: '0 12px 40px rgba(0,0,0,0.12)' } }}
+      >
+        <DialogTitle sx={{ fontWeight: 'bold' }}>Annuler la prescription</DialogTitle>
         <DialogContent>
-          <Typography>
-            Etes-vous sur de vouloir annuler la prescription {prescription.prescriptionNumber} ?
-            Cette action est irreversible.
+          <Typography color="textSecondary">
+            Êtes-vous sûr de vouloir annuler la prescription {prescription.prescriptionNumber} ?
+            Cette action est irréversible.
           </Typography>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setCancelDialog(false)}>Non</Button>
+        <DialogActions sx={{ p: 2 }}>
+          <Button
+            onClick={() => setCancelDialog(false)}
+            sx={{ borderRadius: 2, textTransform: 'none', color: 'text.secondary' }}
+          >
+            Non
+          </Button>
           <Button
             variant="contained"
             color="error"
             onClick={handleCancel}
             disabled={cancelling}
+            sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 'bold', boxShadow: 'none' }}
           >
             {cancelling ? 'Annulation...' : 'Oui, annuler'}
           </Button>
@@ -534,6 +604,7 @@ const PrescriptionDetail = ({ prescriptionId, onBack, onRefresh }) => {
           onClose={() => setSnackbar(prev => ({ ...prev, open: false }))}
           severity={snackbar.severity}
           variant="filled"
+          sx={{ borderRadius: 2, fontWeight: 'bold' }}
         >
           {snackbar.message}
         </Alert>

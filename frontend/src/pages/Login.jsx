@@ -144,21 +144,21 @@ const Login = () => {
 
           {/* Points forts (Footer gauche) */}
           <Grid container spacing={2} sx={{ mt: 'auto' }}>
-            <Grid item xs={4}>
+            <Grid size={4}>
               <Security sx={{ mb: 1, fontSize: 28 }} />
               <Typography variant="subtitle2" fontWeight="bold">Sécurisé</Typography>
               <Typography variant="caption" sx={{ opacity: 0.8, display: 'block' }}>
                 Vos données<br />sont protégées
               </Typography>
             </Grid>
-            <Grid item xs={4}>
+            <Grid size={4}>
               <AccessTime sx={{ mb: 1, fontSize: 28 }} />
               <Typography variant="subtitle2" fontWeight="bold">Rapide</Typography>
               <Typography variant="caption" sx={{ opacity: 0.8, display: 'block' }}>
                 Accédez rapidement<br />à l'essentiel
               </Typography>
             </Grid>
-            <Grid item xs={4}>
+            <Grid size={4}>
               <BarChart sx={{ mb: 1, fontSize: 28 }} />
               <Typography variant="subtitle2" fontWeight="bold">Performant</Typography>
               <Typography variant="caption" sx={{ opacity: 0.8, display: 'block' }}>

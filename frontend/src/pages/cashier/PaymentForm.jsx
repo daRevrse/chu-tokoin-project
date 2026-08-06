@@ -19,10 +19,14 @@ import {
   ListItemText
 } from '@mui/material';
 import {
-  ArrowBack as BackIcon,
-  Payment as PaymentIcon,
-  CheckCircle as SuccessIcon,
-  PhoneAndroid as MobileIcon
+  ArrowBackRounded as BackIcon,
+  PaymentRounded as PaymentIcon,
+  CheckCircleRounded as SuccessIcon,
+  PhoneAndroidRounded as MobileIcon,
+  QrCode2Rounded as QrIcon,
+  DownloadRounded as DownloadIcon,
+  PersonRounded as PersonIcon,
+  AssignmentRounded as PrescriptionIcon
 } from '@mui/icons-material';
 import api from '../../services/api';
 import MobileMoneyPayment from '../../components/cashier/MobileMoneyPayment';
@@ -97,73 +101,98 @@ const PaymentForm = ({ prescription, onBack, onSuccess }) => {
   if (paymentResult) {
     return (
       <Box>
-        <Alert severity="success" sx={{ mb: 3 }} icon={<SuccessIcon />}>
-          Paiement effectue avec succes!
+        <Alert
+          severity="success"
+          sx={{ mb: 3, borderRadius: 3, fontWeight: 'bold', alignItems: 'center' }}
+          icon={<SuccessIcon />}
+        >
+          Paiement effectué avec succès !
         </Alert>
 
         <Grid container spacing={3}>
-          <Grid item xs={12} md={6}>
-            <Paper sx={{ p: 3 }}>
-              <Typography variant="h6" gutterBottom color="success.main">
-                Details du Paiement
-              </Typography>
+          <Grid size={{ xs: 12, md: 6 }}>
+            <Paper elevation={0} sx={{ p: { xs: 3, md: 4 }, height: '100%', borderRadius: 4, boxShadow: '0 4px 20px rgba(0,0,0,0.03)' }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 3 }}>
+                <Box sx={{ bgcolor: '#e8f5e9', width: 40, height: 40, borderRadius: 2, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <SuccessIcon sx={{ fontSize: 22, color: '#2e7d32' }} />
+                </Box>
+                <Typography variant="h6" fontWeight="bold">
+                  Détails du Paiement
+                </Typography>
+              </Box>
 
-              <List>
-                <ListItem>
+              <List sx={{ p: 0 }}>
+                <ListItem sx={{ px: 0, py: 1.5, borderBottom: '1px solid', borderColor: 'divider' }}>
                   <ListItemText
-                    primary="Numero de paiement"
+                    primary="Numéro de paiement"
                     secondary={paymentResult.payment.paymentNumber}
+                    primaryTypographyProps={{ variant: 'caption', color: 'textSecondary', fontWeight: 'bold' }}
+                    secondaryTypographyProps={{ variant: 'body1', color: 'textPrimary', fontWeight: 'bold' }}
                   />
                 </ListItem>
-                <ListItem>
+                <ListItem sx={{ px: 0, py: 1.5, borderBottom: '1px solid', borderColor: 'divider' }}>
                   <ListItemText
                     primary="Montant"
                     secondary={formatPrice(paymentResult.payment.amount)}
+                    primaryTypographyProps={{ variant: 'caption', color: 'textSecondary', fontWeight: 'bold' }}
+                    secondaryTypographyProps={{ variant: 'body1', color: 'success.main', fontWeight: 'bold' }}
                   />
                 </ListItem>
-                <ListItem>
+                <ListItem sx={{ px: 0, py: 1.5, borderBottom: '1px solid', borderColor: 'divider' }}>
                   <ListItemText
-                    primary="Methode"
-                    secondary={paymentResult.payment.paymentMethod === 'CASH' ? 'Especes' :
+                    primary="Méthode"
+                    secondary={paymentResult.payment.paymentMethod === 'CASH' ? 'Espèces' :
                       paymentResult.payment.paymentMethod === 'MOBILE_MONEY' ? 'Mobile Money' : 'Carte'}
+                    primaryTypographyProps={{ variant: 'caption', color: 'textSecondary', fontWeight: 'bold' }}
+                    secondaryTypographyProps={{ variant: 'body1', color: 'textPrimary', fontWeight: 'bold' }}
                   />
                 </ListItem>
-                <ListItem>
+                <ListItem sx={{ px: 0, py: 1.5 }}>
                   <ListItemText
                     primary="Statut"
-                    secondary={<Chip label="Paye" color="success" size="small" />}
+                    secondary={<Chip label="Payé" color="success" size="small" sx={{ fontWeight: 'bold', mt: 0.5 }} />}
+                    primaryTypographyProps={{ variant: 'caption', color: 'textSecondary', fontWeight: 'bold' }}
+                    secondaryTypographyProps={{ component: 'div' }}
                   />
                 </ListItem>
               </List>
 
-              <Divider sx={{ my: 2 }} />
+              <Divider sx={{ my: 3 }} />
 
-              <Typography variant="subtitle2" gutterBottom>
-                Patient: {prescription.patient?.lastName} {prescription.patient?.firstName}
-              </Typography>
-              <Typography variant="subtitle2" gutterBottom>
-                Prescription: {prescription.prescriptionNumber}
-              </Typography>
+              <Box sx={{ p: 2.5, bgcolor: '#f8fafc', borderRadius: 3 }}>
+                <Typography variant="caption" color="textSecondary" fontWeight="bold" display="block">Patient</Typography>
+                <Typography fontWeight="bold" sx={{ mb: 1.5 }}>
+                  {prescription.patient?.lastName} {prescription.patient?.firstName}
+                </Typography>
+                <Typography variant="caption" color="textSecondary" fontWeight="bold" display="block">Prescription</Typography>
+                <Typography fontWeight="bold">
+                  {prescription.prescriptionNumber}
+                </Typography>
+              </Box>
 
               <Box sx={{ mt: 3 }}>
                 <Button
                   variant="outlined"
                   startIcon={<BackIcon />}
                   onClick={onBack}
+                  sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 'bold' }}
                 >
-                  Retour a la liste
+                  Retour à la liste
                 </Button>
               </Box>
             </Paper>
           </Grid>
 
-          <Grid item xs={12} md={6}>
-            <Paper sx={{ p: 3, textAlign: 'center' }}>
-              <Typography variant="h6" gutterBottom>
-                QR Code du Paiement
-              </Typography>
-              <Typography variant="body2" color="textSecondary" sx={{ mb: 2 }}>
-                A presenter aux services de radiologie ou laboratoire
+          <Grid size={{ xs: 12, md: 6 }}>
+            <Paper elevation={0} sx={{ p: { xs: 3, md: 4 }, height: '100%', textAlign: 'center', borderRadius: 4, boxShadow: '0 4px 20px rgba(0,0,0,0.03)' }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1.5, mb: 1 }}>
+                <QrIcon sx={{ color: 'primary.main' }} />
+                <Typography variant="h6" fontWeight="bold">
+                  QR Code du Paiement
+                </Typography>
+              </Box>
+              <Typography variant="body2" color="textSecondary" sx={{ mb: 3 }}>
+                À présenter aux services de radiologie ou laboratoire
               </Typography>
 
               {paymentResult.payment.qrCode && (
@@ -171,40 +200,43 @@ const PaymentForm = ({ prescription, onBack, onSuccess }) => {
                   sx={{
                     display: 'flex',
                     justifyContent: 'center',
-                    mb: 2
+                    mb: 3
                   }}
                 >
-                  <img
-                    src={paymentResult.payment.qrCode}
-                    alt="QR Code Paiement"
-                    style={{
-                      maxWidth: '250px',
-                      border: '1px solid #ddd',
-                      borderRadius: '8px',
-                      padding: '10px',
-                      background: 'white'
+                  <Box
+                    sx={{
+                      p: 2,
+                      bgcolor: 'white',
+                      borderRadius: 4,
+                      boxShadow: '0 4px 20px rgba(0,0,0,0.06)'
                     }}
-                  />
+                  >
+                    <img
+                      src={paymentResult.payment.qrCode}
+                      alt="QR Code Paiement"
+                      style={{ maxWidth: '250px', display: 'block' }}
+                    />
+                  </Box>
                 </Box>
               )}
 
-              <Typography variant="caption" color="textSecondary">
-                Ce QR code contient les informations du paiement et des examens a effectuer
+              <Typography variant="caption" color="textSecondary" display="block" sx={{ mb: 3 }}>
+                Ce QR code contient les informations du paiement et des examens à effectuer
               </Typography>
 
-              <Box sx={{ mt: 2 }}>
-                <Button
-                  variant="contained"
-                  onClick={() => {
-                    const link = document.createElement('a');
-                    link.href = paymentResult.payment.qrCode;
-                    link.download = `qr-${paymentResult.payment.paymentNumber}.png`;
-                    link.click();
-                  }}
-                >
-                  Telecharger QR Code
-                </Button>
-              </Box>
+              <Button
+                variant="contained"
+                startIcon={<DownloadIcon />}
+                onClick={() => {
+                  const link = document.createElement('a');
+                  link.href = paymentResult.payment.qrCode;
+                  link.download = `qr-${paymentResult.payment.paymentNumber}.png`;
+                  link.click();
+                }}
+                sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 'bold', boxShadow: 'none', px: 3, py: 1.2 }}
+              >
+                Télécharger le QR Code
+              </Button>
             </Paper>
           </Grid>
         </Grid>
@@ -217,76 +249,89 @@ const PaymentForm = ({ prescription, onBack, onSuccess }) => {
       <Button
         startIcon={<BackIcon />}
         onClick={onBack}
-        sx={{ mb: 2 }}
+        sx={{ mb: 3, borderRadius: 2, textTransform: 'none', color: 'text.secondary' }}
       >
         Retour
       </Button>
 
-      <Typography variant="h5" gutterBottom>
+      <Typography variant="h5" fontWeight="bold" sx={{ mb: 3 }}>
         Traitement du Paiement
       </Typography>
 
-      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+      {error && <Alert severity="error" sx={{ mb: 3, borderRadius: 2 }}>{error}</Alert>}
 
       <Grid container spacing={3}>
         {/* Info Prescription */}
-        <Grid item xs={12} md={6}>
-          <Card sx={{ mb: 2 }}>
-            <CardContent>
-              <Typography variant="h6" gutterBottom color="primary">
-                Informations Patient
-              </Typography>
+        <Grid size={{ xs: 12, md: 6 }}>
+          <Card elevation={0} sx={{ mb: 3, borderRadius: 4, boxShadow: '0 4px 20px rgba(0,0,0,0.03)' }}>
+            <CardContent sx={{ p: 3 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 3 }}>
+                <Box sx={{ bgcolor: '#e3f2fd', width: 40, height: 40, borderRadius: 2, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <PersonIcon sx={{ fontSize: 22, color: '#1976d2' }} />
+                </Box>
+                <Typography variant="h6" fontWeight="bold">
+                  Informations Patient
+                </Typography>
+              </Box>
               <Grid container spacing={2}>
-                <Grid item xs={6}>
-                  <Typography variant="subtitle2" color="textSecondary">Nom complet</Typography>
-                  <Typography fontWeight="medium">
+                <Grid size={6}>
+                  <Typography variant="caption" color="textSecondary" fontWeight="bold" display="block">Nom complet</Typography>
+                  <Typography fontWeight="bold">
                     {prescription.patient?.lastName} {prescription.patient?.firstName}
                   </Typography>
                 </Grid>
-                <Grid item xs={6}>
-                  <Typography variant="subtitle2" color="textSecondary">N° Patient</Typography>
-                  <Chip label={prescription.patient?.patientNumber} color="primary" size="small" />
+                <Grid size={6}>
+                  <Typography variant="caption" color="textSecondary" fontWeight="bold" display="block" sx={{ mb: 0.5 }}>N° Patient</Typography>
+                  <Chip label={prescription.patient?.patientNumber} color="primary" variant="outlined" size="small" sx={{ fontWeight: 'bold' }} />
                 </Grid>
-                <Grid item xs={6}>
-                  <Typography variant="subtitle2" color="textSecondary">Age</Typography>
-                  <Typography>{calculateAge(prescription.patient?.dateOfBirth)} ans</Typography>
+                <Grid size={6}>
+                  <Typography variant="caption" color="textSecondary" fontWeight="bold" display="block">Âge</Typography>
+                  <Typography fontWeight="bold">{calculateAge(prescription.patient?.dateOfBirth)} ans</Typography>
                 </Grid>
-                <Grid item xs={6}>
-                  <Typography variant="subtitle2" color="textSecondary">Telephone</Typography>
-                  <Typography>{prescription.patient?.phone}</Typography>
+                <Grid size={6}>
+                  <Typography variant="caption" color="textSecondary" fontWeight="bold" display="block">Téléphone</Typography>
+                  <Typography fontWeight="bold">{prescription.patient?.phone}</Typography>
                 </Grid>
               </Grid>
             </CardContent>
           </Card>
 
-          <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom color="primary">
-                Prescription
-              </Typography>
-              <Typography variant="subtitle2" color="textSecondary">N° Prescription</Typography>
+          <Card elevation={0} sx={{ borderRadius: 4, boxShadow: '0 4px 20px rgba(0,0,0,0.03)' }}>
+            <CardContent sx={{ p: 3 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 3 }}>
+                <Box sx={{ bgcolor: '#fff3e0', width: 40, height: 40, borderRadius: 2, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <PrescriptionIcon sx={{ fontSize: 22, color: '#ed6c02' }} />
+                </Box>
+                <Typography variant="h6" fontWeight="bold">
+                  Prescription
+                </Typography>
+              </Box>
+
+              <Typography variant="caption" color="textSecondary" fontWeight="bold" display="block" sx={{ mb: 0.5 }}>N° Prescription</Typography>
               <Chip
                 label={prescription.prescriptionNumber}
                 color="warning"
-                sx={{ mb: 2 }}
+                sx={{ mb: 3, fontWeight: 'bold' }}
               />
 
-              <Typography variant="subtitle2" color="textSecondary" sx={{ mt: 1 }}>
-                Medecin prescripteur
+              <Typography variant="caption" color="textSecondary" fontWeight="bold" display="block">
+                Médecin prescripteur
               </Typography>
-              <Typography sx={{ mb: 2 }}>
+              <Typography fontWeight="bold" sx={{ mb: 3 }}>
                 Dr. {prescription.doctor?.lastName} {prescription.doctor?.firstName}
               </Typography>
 
-              <Typography variant="subtitle2" color="textSecondary">
+              <Typography variant="caption" color="textSecondary" fontWeight="bold" display="block" sx={{ mb: 1 }}>
                 Examens prescrits
               </Typography>
-              <List dense>
+              <List dense sx={{ p: 0 }}>
                 {prescription.prescriptionExams?.map((pe) => (
-                  <ListItem key={pe.id} sx={{ py: 0 }}>
+                  <ListItem key={pe.id} sx={{ bgcolor: '#f8fafc', borderRadius: 2, mb: 1, py: 1.5 }}>
                     <ListItemText
                       primary={pe.exam?.name}
-                      secondary={`${pe.exam?.code} - ${formatPrice(pe.exam?.price)}`}
+                      secondary={`${pe.exam?.code} — ${formatPrice(pe.exam?.price)}`}
+                      primaryTypographyProps={{ fontWeight: 'bold', variant: 'body2' }}
+                      secondaryTypographyProps={{ variant: 'caption' }}
                     />
                   </ListItem>
                 ))}
@@ -296,17 +341,26 @@ const PaymentForm = ({ prescription, onBack, onSuccess }) => {
         </Grid>
 
         {/* Formulaire de paiement */}
-        <Grid item xs={12} md={6}>
-          <Paper sx={{ p: 3, position: 'sticky', top: 20 }}>
-            <Typography variant="h6" gutterBottom>
+        <Grid size={{ xs: 12, md: 6 }}>
+          <Paper elevation={0} sx={{ p: { xs: 3, md: 4 }, borderRadius: 4, boxShadow: '0 4px 20px rgba(0,0,0,0.03)', position: 'sticky', top: 20 }}>
+            <Typography variant="h6" fontWeight="bold" sx={{ mb: 3 }}>
               Encaissement
             </Typography>
 
-            <Box sx={{ bgcolor: 'primary.light', p: 2, borderRadius: 2, mb: 3 }}>
-              <Typography variant="subtitle2" color="primary.contrastText">
-                Montant a payer
+            <Box
+              sx={{
+                background: 'linear-gradient(135deg, #1976d2 0%, #115293 100%)',
+                color: 'white',
+                p: 3,
+                borderRadius: 4,
+                mb: 3,
+                boxShadow: '0 8px 24px rgba(25, 118, 210, 0.2)'
+              }}
+            >
+              <Typography variant="body2" sx={{ opacity: 0.9, fontWeight: 'bold' }}>
+                Montant à payer
               </Typography>
-              <Typography variant="h3" color="primary.contrastText">
+              <Typography variant="h3" fontWeight="bold" sx={{ mt: 0.5 }}>
                 {formatPrice(prescription.totalAmount)}
               </Typography>
             </Box>
@@ -317,24 +371,35 @@ const PaymentForm = ({ prescription, onBack, onSuccess }) => {
                 value={paymentMethod}
                 label="Mode de paiement"
                 onChange={(e) => setPaymentMethod(e.target.value)}
+                sx={{ borderRadius: 2 }}
               >
-                <MenuItem value="CASH">Especes</MenuItem>
+                <MenuItem value="CASH">Espèces</MenuItem>
                 <MenuItem value="MOBILE_MONEY">Mobile Money</MenuItem>
                 <MenuItem value="CARD">Carte bancaire</MenuItem>
               </Select>
             </FormControl>
 
-            <Divider sx={{ my: 2 }} />
+            <Divider sx={{ my: 3 }} />
 
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-              <Typography>Nombre d'examens:</Typography>
-              <Typography fontWeight="medium">
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
+              <Typography color="textSecondary">Nombre d'examens</Typography>
+              <Typography fontWeight="bold">
                 {prescription.prescriptionExams?.length || 0}
               </Typography>
             </Box>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
-              <Typography variant="h6">Total:</Typography>
-              <Typography variant="h6" color="primary">
+            <Box
+              sx={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                mb: 3,
+                p: 2,
+                bgcolor: '#f8fafc',
+                borderRadius: 3
+              }}
+            >
+              <Typography variant="subtitle1" fontWeight="bold">Total</Typography>
+              <Typography variant="h6" fontWeight="bold" color="primary">
                 {formatPrice(prescription.totalAmount)}
               </Typography>
             </Box>
@@ -347,6 +412,7 @@ const PaymentForm = ({ prescription, onBack, onSuccess }) => {
               startIcon={paymentMethod === 'MOBILE_MONEY' ? <MobileIcon /> : <PaymentIcon />}
               onClick={handlePayment}
               disabled={loading}
+              sx={{ borderRadius: 2, textTransform: 'none', py: 1.5, fontWeight: 'bold', fontSize: '1rem', boxShadow: 'none' }}
             >
               {loading ? 'Traitement...' : paymentMethod === 'MOBILE_MONEY' ? 'Payer via Mobile Money' : 'Confirmer le Paiement'}
             </Button>

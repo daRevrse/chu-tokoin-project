@@ -12,6 +12,7 @@ import MainLayout from './components/layout/MainLayout';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Unauthorized from './pages/Unauthorized';
+import Profile from './pages/Profile';
 
 // Dashboards par role
 import DoctorDashboard from './pages/doctor/DoctorDashboard';
@@ -54,6 +55,16 @@ function App() {
               element={
                 <ProtectedWithLayout>
                   <Dashboard />
+                </ProtectedWithLayout>
+              }
+            />
+
+            {/* Profil du compte connecte : accessible a tous les roles */}
+            <Route
+              path="/profile"
+              element={
+                <ProtectedWithLayout>
+                  <Profile />
                 </ProtectedWithLayout>
               }
             />

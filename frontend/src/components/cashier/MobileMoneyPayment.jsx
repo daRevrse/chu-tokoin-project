@@ -19,16 +19,16 @@ import {
   StepLabel
 } from '@mui/material';
 import {
-  Phone,
-  CheckCircle,
-  Error as ErrorIcon,
-  PhoneAndroid
+  PhoneRounded as Phone,
+  CheckCircleRounded as CheckCircle,
+  ErrorRounded as ErrorIcon,
+  PhoneAndroidRounded as PhoneAndroid
 } from '@mui/icons-material';
 import axios from 'axios';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
 
-const steps = ['Provider', 'Telephone', 'Confirmation', 'Resultat'];
+const steps = ['Opérateur', 'Téléphone', 'Confirmation', 'Résultat'];
 
 const MobileMoneyPayment = ({ open, onClose, prescription, onSuccess }) => {
   const [activeStep, setActiveStep] = useState(0);
@@ -61,7 +61,7 @@ const MobileMoneyPayment = ({ open, onClose, prescription, onSuccess }) => {
             clearInterval(interval);
           } else if (response.data.status === 'FAILED') {
             setPaymentStatus('FAILED');
-            setError('Le paiement a ete refuse');
+            setError('Le paiement a été refusé');
             clearInterval(interval);
           }
         } catch (err) {
@@ -143,13 +143,24 @@ const MobileMoneyPayment = ({ open, onClose, prescription, onSuccess }) => {
   };
 
   return (
-    <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
-      <DialogTitle sx={{ display: 'flex', alignItems: 'center' }}>
-        <PhoneAndroid sx={{ mr: 1 }} />
+    <Dialog
+      open={open}
+      onClose={handleClose}
+      maxWidth="sm"
+      fullWidth
+      PaperProps={{ sx: { borderRadius: 4, boxShadow: '0 12px 40px rgba(0,0,0,0.12)' } }}
+    >
+      <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1.5, fontWeight: 'bold', pt: 3 }}>
+        <Box sx={{ bgcolor: '#fff3e0', width: 40, height: 40, borderRadius: 2, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <PhoneAndroid sx={{ fontSize: 22, color: '#ed6c02' }} />
+        </Box>
         Paiement Mobile Money
       </DialogTitle>
       <DialogContent>
-        <Stepper activeStep={activeStep} sx={{ my: 3 }}>
+        <Stepper
+          activeStep={activeStep}
+          sx={{ my: 4, '& .MuiStepLabel-label': { fontWeight: 'bold', fontSize: '0.8rem' } }}
+        >
           {steps.map((label) => (
             <Step key={label}>
               <StepLabel>{label}</StepLabel>
@@ -158,7 +169,7 @@ const MobileMoneyPayment = ({ open, onClose, prescription, onSuccess }) => {
         </Stepper>
 
         {error && (
-          <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
+          <Alert severity="error" sx={{ mb: 3, borderRadius: 2 }} onClose={() => setError(null)}>
             {error}
           </Alert>
         )}
@@ -166,19 +177,20 @@ const MobileMoneyPayment = ({ open, onClose, prescription, onSuccess }) => {
         {/* Etape 0: Selection du provider */}
         {activeStep === 0 && (
           <Box>
-            <Typography variant="body2" color="textSecondary" sx={{ mb: 2 }}>
-              Selectionnez le service Mobile Money a utiliser
+            <Typography variant="body2" color="textSecondary" sx={{ mb: 3 }}>
+              Sélectionnez le service Mobile Money à utiliser
             </Typography>
             <FormControl fullWidth>
-              <InputLabel>Provider Mobile Money</InputLabel>
+              <InputLabel>Opérateur Mobile Money</InputLabel>
               <Select
                 value={provider}
                 onChange={(e) => setProvider(e.target.value)}
-                label="Provider Mobile Money"
+                label="Opérateur Mobile Money"
+                sx={{ borderRadius: 2 }}
               >
                 <MenuItem value="TMONEY">
                   <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                    <Box sx={{ width: 30, height: 30, bgcolor: '#FF6B00', borderRadius: 1, mr: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 'bold', fontSize: 12 }}>
+                    <Box sx={{ width: 32, height: 32, bgcolor: '#FF6B00', borderRadius: 2, mr: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 'bold', fontSize: 12 }}>
                       TM
                     </Box>
                     T-Money (Togocel)
@@ -186,7 +198,7 @@ const MobileMoneyPayment = ({ open, onClose, prescription, onSuccess }) => {
                 </MenuItem>
                 <MenuItem value="FLOOZ">
                   <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                    <Box sx={{ width: 30, height: 30, bgcolor: '#00A651', borderRadius: 1, mr: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 'bold', fontSize: 12 }}>
+                    <Box sx={{ width: 32, height: 32, bgcolor: '#00A651', borderRadius: 2, mr: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 'bold', fontSize: 12 }}>
                       FL
                     </Box>
                     Flooz (Moov Africa)
@@ -200,12 +212,12 @@ const MobileMoneyPayment = ({ open, onClose, prescription, onSuccess }) => {
         {/* Etape 1: Numero de telephone */}
         {activeStep === 1 && (
           <Box>
-            <Typography variant="body2" color="textSecondary" sx={{ mb: 2 }}>
-              Entrez le numero de telephone {provider === 'TMONEY' ? 'Togocel' : 'Moov'} du patient
+            <Typography variant="body2" color="textSecondary" sx={{ mb: 3 }}>
+              Entrez le numéro de téléphone {provider === 'TMONEY' ? 'Togocel' : 'Moov'} du patient
             </Typography>
             <TextField
               fullWidth
-              label="Numero de telephone"
+              label="Numéro de téléphone"
               value={phoneNumber}
               onChange={(e) => setPhoneNumber(formatPhoneNumber(e.target.value))}
               placeholder="90 XX XX XX"
@@ -213,43 +225,44 @@ const MobileMoneyPayment = ({ open, onClose, prescription, onSuccess }) => {
                 startAdornment: (
                   <Box sx={{ display: 'flex', alignItems: 'center', mr: 1 }}>
                     <Phone sx={{ color: 'action.active', mr: 0.5 }} />
-                    <Typography color="textSecondary">+228</Typography>
+                    <Typography color="textSecondary" fontWeight="bold">+228</Typography>
                   </Box>
                 )
               }}
-              helperText="Entrez le numero sans le prefixe +228"
+              helperText="Entrez le numéro sans le préfixe +228"
+              sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
             />
           </Box>
         )}
 
         {/* Etape 2: Confirmation */}
         {activeStep === 2 && (
-          <Box sx={{ textAlign: 'center', py: 2 }}>
-            <Typography variant="h6" gutterBottom>Confirmer le paiement</Typography>
+          <Box sx={{ textAlign: 'center', py: 1 }}>
+            <Typography variant="h6" fontWeight="bold" gutterBottom>Confirmer le paiement</Typography>
 
-            <Box sx={{ bgcolor: 'grey.100', p: 3, borderRadius: 2, my: 2 }}>
-              <Typography color="textSecondary">Provider</Typography>
-              <Typography variant="h6" sx={{ mb: 2 }}>
+            <Box sx={{ bgcolor: '#f8fafc', p: 3, borderRadius: 3, my: 3 }}>
+              <Typography variant="caption" color="textSecondary" fontWeight="bold">Opérateur</Typography>
+              <Typography variant="h6" fontWeight="bold" sx={{ mb: 2 }}>
                 {provider === 'TMONEY' ? 'T-Money' : 'Flooz'}
               </Typography>
 
-              <Typography color="textSecondary">Telephone</Typography>
-              <Typography variant="h6" sx={{ mb: 2 }}>+228 {phoneNumber}</Typography>
+              <Typography variant="caption" color="textSecondary" fontWeight="bold">Téléphone</Typography>
+              <Typography variant="h6" fontWeight="bold" sx={{ mb: 2 }}>+228 {phoneNumber}</Typography>
 
-              <Typography color="textSecondary">Prescription</Typography>
-              <Typography variant="body1" sx={{ mb: 2 }}>
+              <Typography variant="caption" color="textSecondary" fontWeight="bold">Prescription</Typography>
+              <Typography variant="body1" fontWeight="bold" sx={{ mb: 2 }}>
                 {prescription?.prescriptionNumber}
               </Typography>
 
-              <Typography color="textSecondary">Montant a payer</Typography>
-              <Typography variant="h4" color="primary">
+              <Typography variant="caption" color="textSecondary" fontWeight="bold">Montant à payer</Typography>
+              <Typography variant="h4" fontWeight="bold" color="primary">
                 {prescription?.totalAmount?.toLocaleString('fr-FR')} FCFA
               </Typography>
             </Box>
 
-            <Alert severity="info" sx={{ textAlign: 'left' }}>
-              En cliquant sur "Payer", une demande de paiement sera envoyee au numero {phoneNumber}.
-              Le patient devra confirmer le paiement sur son telephone.
+            <Alert severity="info" sx={{ textAlign: 'left', borderRadius: 2 }}>
+              En cliquant sur « Payer », une demande de paiement sera envoyée au numéro {phoneNumber}.
+              Le patient devra confirmer le paiement sur son téléphone.
             </Alert>
           </Box>
         )}
@@ -259,54 +272,67 @@ const MobileMoneyPayment = ({ open, onClose, prescription, onSuccess }) => {
           <Box sx={{ textAlign: 'center', py: 3 }}>
             {paymentStatus === 'PROCESSING' && (
               <>
-                <CircularProgress size={60} sx={{ mb: 2 }} />
-                <Typography variant="h6">Paiement en cours...</Typography>
-                <Typography color="textSecondary" sx={{ mb: 2 }}>
+                <CircularProgress size={60} sx={{ mb: 3 }} />
+                <Typography variant="h6" fontWeight="bold">Paiement en cours...</Typography>
+                <Typography color="textSecondary" sx={{ mb: 3 }}>
                   En attente de confirmation du client
                 </Typography>
-                <Alert severity="info">
-                  Le client doit confirmer le paiement sur son telephone en composant son code secret {provider === 'TMONEY' ? 'T-Money' : 'Flooz'}.
+                <Alert severity="info" sx={{ textAlign: 'left', borderRadius: 2 }}>
+                  Le client doit confirmer le paiement sur son téléphone en composant son code secret {provider === 'TMONEY' ? 'T-Money' : 'Flooz'}.
                 </Alert>
               </>
             )}
             {paymentStatus === 'SUCCESS' && (
               <>
-                <CheckCircle sx={{ fontSize: 80, color: 'success.main', mb: 2 }} />
-                <Typography variant="h5" color="success.main" gutterBottom>
-                  Paiement reussi !
+                <Box sx={{ bgcolor: '#e8f5e9', width: 96, height: 96, borderRadius: 3, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto', mb: 3 }}>
+                  <CheckCircle sx={{ fontSize: 56, color: '#2e7d32' }} />
+                </Box>
+                <Typography variant="h5" fontWeight="bold" color="success.main" gutterBottom>
+                  Paiement réussi !
                 </Typography>
-                <Typography color="textSecondary" sx={{ mb: 2 }}>
-                  Le paiement de {prescription?.totalAmount?.toLocaleString('fr-FR')} FCFA a ete effectue avec succes.
+                <Typography color="textSecondary" sx={{ mb: 3 }}>
+                  Le paiement de {prescription?.totalAmount?.toLocaleString('fr-FR')} FCFA a été effectué avec succès.
                 </Typography>
                 {qrCode && (
                   <Box sx={{ mt: 2 }}>
-                    <Typography variant="subtitle2" gutterBottom>QR Code de validation:</Typography>
-                    <img src={qrCode} alt="QR Code" style={{ maxWidth: 200 }} />
+                    <Typography variant="subtitle2" fontWeight="bold" gutterBottom>QR Code de validation</Typography>
+                    <Box sx={{ display: 'inline-block', p: 2, bgcolor: 'white', borderRadius: 3, boxShadow: '0 4px 20px rgba(0,0,0,0.06)' }}>
+                      <img src={qrCode} alt="QR Code" style={{ maxWidth: 200, display: 'block' }} />
+                    </Box>
                   </Box>
                 )}
               </>
             )}
             {paymentStatus === 'FAILED' && (
               <>
-                <ErrorIcon sx={{ fontSize: 80, color: 'error.main', mb: 2 }} />
-                <Typography variant="h5" color="error.main" gutterBottom>
-                  Paiement echoue
+                <Box sx={{ bgcolor: '#ffebee', width: 96, height: 96, borderRadius: 3, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto', mb: 3 }}>
+                  <ErrorIcon sx={{ fontSize: 56, color: '#d32f2f' }} />
+                </Box>
+                <Typography variant="h5" fontWeight="bold" color="error.main" gutterBottom>
+                  Paiement échoué
                 </Typography>
                 <Typography color="textSecondary">
-                  Le paiement n'a pas pu etre effectue. Veuillez reessayer ou utiliser un autre mode de paiement.
+                  Le paiement n'a pas pu être effectué. Veuillez réessayer ou utiliser un autre mode de paiement.
                 </Typography>
               </>
             )}
           </Box>
         )}
       </DialogContent>
-      <DialogActions>
+      <DialogActions sx={{ p: 3, pt: 2 }}>
         {activeStep < 3 && activeStep > 0 && (
-          <Button onClick={handleBack} disabled={loading}>
+          <Button
+            onClick={handleBack}
+            disabled={loading}
+            sx={{ borderRadius: 2, textTransform: 'none', color: 'text.secondary' }}
+          >
             Retour
           </Button>
         )}
-        <Button onClick={handleClose}>
+        <Button
+          onClick={handleClose}
+          sx={{ borderRadius: 2, textTransform: 'none', color: 'text.secondary' }}
+        >
           {paymentStatus === 'SUCCESS' ? 'Fermer' : 'Annuler'}
         </Button>
         {activeStep < 3 && (
@@ -315,6 +341,7 @@ const MobileMoneyPayment = ({ open, onClose, prescription, onSuccess }) => {
             onClick={handleNext}
             disabled={isNextDisabled() || loading}
             color={activeStep === 2 ? 'success' : 'primary'}
+            sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 'bold', boxShadow: 'none', px: 3 }}
           >
             {loading ? (
               <CircularProgress size={24} color="inherit" />

@@ -9,7 +9,9 @@ const roleCheck = require('../middleware/roleCheck');
 router.use(authenticateToken);
 
 // Toutes les routes sont reservees aux services (radiologie/labo) et admin
-router.use(roleCheck('RADIOLOGIST', 'LAB_TECHNICIAN', 'ADMIN'));
+// TECHNICIAN est le role du personnel des services ajoutes apres coup
+// (Cardiologie, Pneumologie, ...) ; sans lui, ils n'auraient aucun acces.
+router.use(roleCheck('RADIOLOGIST', 'LAB_TECHNICIAN', 'TECHNICIAN', 'ADMIN'));
 
 // Scanner et verifier QR code
 router.post('/verify-qr',
@@ -28,6 +30,10 @@ router.get('/my-exams', serviceController.getMyExams);
 
 // Demarrer un examen
 router.patch('/exams/:id/start', serviceController.startExam);
+
+// Circuit de realisation configure par service
+router.get('/exams/:id/steps', serviceController.getExamSteps);
+router.patch('/exams/:id/steps/:progressId', serviceController.completeStep);
 
 // Terminer un examen
 router.patch('/exams/:id/complete',

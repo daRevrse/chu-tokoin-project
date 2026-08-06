@@ -1,6 +1,8 @@
-const { Payment, Prescription, PrescriptionExam, Patient, Exam, User } = require('../models');
+const { Op } = require('sequelize');
+const { Payment, Prescription, PrescriptionExam, Patient, Exam, User, ServiceStep, ExamStepProgress } = require('../models');
 const qrcodeService = require('../services/qrcodeService');
 const logger = require('../utils/logger');
+const { getExamScope, getScopeLabel, isExamInScope, initExamSteps } = require('../utils/serviceScope');
 
 const serviceController = {
   /**
@@ -50,15 +52,15 @@ const serviceController = {
         return res.status(400).json({ error: 'Paiement non valide ou non confirme' });
       }
 
-      // Filtrer les examens selon le role de l'utilisateur
-      const userCategory = req.user.role === 'RADIOLOGIST' ? 'RADIOLOGY' : 'LABORATORY';
+      // Filtrer les examens relevant du service de l'utilisateur
       const relevantExams = payment.prescription.prescriptionExams.filter(
-        pe => pe.exam.category === userCategory
+        pe => isExamInScope(req.user, pe.exam)
       );
 
       if (relevantExams.length === 0) {
+        const label = await getScopeLabel(req.user);
         return res.status(404).json({
-          error: `Aucun examen de ${userCategory === 'RADIOLOGY' ? 'radiologie' : 'laboratoire'} pour ce patient`
+          error: `Aucun examen de ${label} pour ce patient`
         });
       }
 
@@ -98,15 +100,13 @@ const serviceController = {
       const { page = 1, limit = 50 } = req.query;
       const offset = (page - 1) * limit;
 
-      const userCategory = req.user.role === 'RADIOLOGIST' ? 'RADIOLOGY' : 'LABORATORY';
-
       const { count, rows } = await PrescriptionExam.findAndCountAll({
         where: { status: 'PAID' },
         include: [
           {
             model: Exam,
             as: 'exam',
-            where: { category: userCategory }
+            where: getExamScope(req.user)
           },
           {
             model: Prescription,
@@ -165,9 +165,8 @@ const serviceController = {
         return res.status(404).json({ error: 'Examen non trouve' });
       }
 
-      // Verifier que l'examen correspond au role
-      const userCategory = req.user.role === 'RADIOLOGIST' ? 'RADIOLOGY' : 'LABORATORY';
-      if (prescriptionExam.exam.category !== userCategory) {
+      // Verifier que l'examen releve bien du service de l'utilisateur
+      if (!isExamInScope(req.user, prescriptionExam.exam)) {
         return res.status(403).json({ error: 'Vous n\'etes pas autorise a traiter cet examen' });
       }
 
@@ -180,6 +179,13 @@ const serviceController = {
       prescriptionExam.status = 'IN_PROGRESS';
       prescriptionExam.performedBy = req.user.id;
       await prescriptionExam.save();
+
+      // Derouler le circuit configure pour le service (prelevement, analyse,
+      // validation...). Sans etape configuree, l'examen suit le circuit court.
+      const steps = await initExamSteps(
+        prescriptionExam,
+        prescriptionExam.exam.serviceId || req.user.serviceId
+      );
 
       // Mettre a jour le statut de la prescription si c'est le premier examen demarre
       if (prescriptionExam.prescription.status === 'PAID') {
@@ -194,6 +200,7 @@ const serviceController = {
 
       res.json({
         message: 'Examen demarre',
+        stepsCount: steps.length,
         exam: {
           id: prescriptionExam.id,
           code: prescriptionExam.exam.code,
@@ -244,6 +251,22 @@ const serviceController = {
         prescriptionExam.notes = notes;
       }
       await prescriptionExam.save();
+
+      // Cloturer les etapes encore ouvertes : terminer l'examen directement
+      // ne doit pas laisser d'etapes en suspens dans le suivi.
+      await ExamStepProgress.update(
+        {
+          status: 'COMPLETED',
+          completedAt: new Date(),
+          performedBy: req.user.id
+        },
+        {
+          where: {
+            prescriptionExamId: prescriptionExam.id,
+            status: ['PENDING', 'IN_PROGRESS']
+          }
+        }
+      );
 
       // Verifier si tous les examens de la prescription sont termines
       const allExams = await PrescriptionExam.findAll({
@@ -334,8 +357,6 @@ const serviceController = {
    */
   getInProgressExams: async (req, res) => {
     try {
-      const userCategory = req.user.role === 'RADIOLOGIST' ? 'RADIOLOGY' : 'LABORATORY';
-
       const exams = await PrescriptionExam.findAll({
         where: {
           status: 'IN_PROGRESS',
@@ -345,7 +366,7 @@ const serviceController = {
           {
             model: Exam,
             as: 'exam',
-            where: { category: userCategory }
+            where: getExamScope(req.user)
           },
           {
             model: Prescription,
@@ -370,6 +391,173 @@ const serviceController = {
     } catch (error) {
       logger.error('Get in-progress exams error:', error);
       res.status(500).json({ error: 'Erreur lors de la recuperation des examens' });
+    }
+  },
+
+  /**
+   * Circuit de realisation d'un examen et avancement etape par etape
+   * GET /api/services/exams/:id/steps
+   */
+  getExamSteps: async (req, res) => {
+    try {
+      const prescriptionExam = await PrescriptionExam.findByPk(req.params.id, {
+        include: [{ model: Exam, as: 'exam' }]
+      });
+
+      if (!prescriptionExam) {
+        return res.status(404).json({ error: 'Examen non trouve' });
+      }
+
+      if (req.user.role !== 'ADMIN' && !isExamInScope(req.user, prescriptionExam.exam)) {
+        return res.status(403).json({ error: 'Cet examen ne releve pas de votre service' });
+      }
+
+      const progress = await ExamStepProgress.findAll({
+        where: { prescriptionExamId: prescriptionExam.id },
+        include: [
+          { model: ServiceStep, as: 'step' },
+          { model: User, as: 'performer', attributes: ['id', 'firstName', 'lastName'] }
+        ],
+        order: [['stepOrder', 'ASC']]
+      });
+
+      res.json({
+        examStatus: prescriptionExam.status,
+        steps: progress.map(p => ({
+          id: p.id,
+          code: p.step?.code,
+          name: p.step?.name,
+          order: p.stepOrder,
+          status: p.status,
+          isRequired: p.step?.isRequired ?? true,
+          producesResult: p.step?.producesResult ?? false,
+          startedAt: p.startedAt,
+          completedAt: p.completedAt,
+          notes: p.notes,
+          performedBy: p.performer
+            ? `${p.performer.firstName} ${p.performer.lastName}`
+            : null
+        }))
+      });
+    } catch (error) {
+      logger.error('Get exam steps error:', error);
+      res.status(500).json({ error: 'Erreur lors de la recuperation des etapes' });
+    }
+  },
+
+  /**
+   * Terminer une etape et passer a la suivante
+   * PATCH /api/services/exams/:id/steps/:progressId
+   *
+   * Terminer l'etape marquee `producesResult` acheve l'examen : c'est la
+   * derniere du circuit configure pour le service.
+   */
+  completeStep: async (req, res) => {
+    try {
+      const { id, progressId } = req.params;
+      const { notes, skip } = req.body || {};
+
+      const prescriptionExam = await PrescriptionExam.findByPk(id, {
+        include: [
+          { model: Exam, as: 'exam' },
+          { model: Prescription, as: 'prescription' }
+        ]
+      });
+
+      if (!prescriptionExam) {
+        return res.status(404).json({ error: 'Examen non trouve' });
+      }
+
+      if (req.user.role !== 'ADMIN' && !isExamInScope(req.user, prescriptionExam.exam)) {
+        return res.status(403).json({ error: 'Cet examen ne releve pas de votre service' });
+      }
+
+      const current = await ExamStepProgress.findOne({
+        where: { id: progressId, prescriptionExamId: id },
+        include: [{ model: ServiceStep, as: 'step' }]
+      });
+
+      if (!current) {
+        return res.status(404).json({ error: 'Etape non trouvee pour cet examen' });
+      }
+
+      if (current.status === 'COMPLETED' || current.status === 'SKIPPED') {
+        return res.status(400).json({ error: 'Cette etape est deja cloturee' });
+      }
+
+      // Une etape obligatoire ne peut pas etre ignoree
+      if (skip && current.step?.isRequired) {
+        return res.status(400).json({ error: 'Cette etape est obligatoire et ne peut pas etre ignoree' });
+      }
+
+      // Les etapes precedentes doivent etre cloturees : le circuit est sequentiel
+      const anterieuresOuvertes = await ExamStepProgress.count({
+        where: {
+          prescriptionExamId: id,
+          stepOrder: { [Op.lt]: current.stepOrder },
+          status: ['PENDING', 'IN_PROGRESS']
+        }
+      });
+      if (anterieuresOuvertes > 0) {
+        return res.status(400).json({
+          error: 'Une etape precedente n\'est pas terminee'
+        });
+      }
+
+      current.status = skip ? 'SKIPPED' : 'COMPLETED';
+      current.completedAt = new Date();
+      current.performedBy = req.user.id;
+      if (notes) current.notes = notes;
+      if (!current.startedAt) current.startedAt = new Date();
+      await current.save();
+
+      // Ouvrir l'etape suivante, s'il en reste
+      const next = await ExamStepProgress.findOne({
+        where: {
+          prescriptionExamId: id,
+          stepOrder: { [Op.gt]: current.stepOrder },
+          status: 'PENDING'
+        },
+        order: [['stepOrder', 'ASC']]
+      });
+
+      if (next) {
+        next.status = 'IN_PROGRESS';
+        next.startedAt = new Date();
+        await next.save();
+      }
+
+      // L'etape produisant le resultat cloture l'examen
+      let examCompleted = false;
+      if (current.step?.producesResult && !skip) {
+        prescriptionExam.status = 'COMPLETED';
+        prescriptionExam.performedAt = new Date();
+        await prescriptionExam.save();
+        examCompleted = true;
+
+        const allExams = await PrescriptionExam.findAll({
+          where: { prescriptionId: prescriptionExam.prescriptionId }
+        });
+        if (allExams.every(e => e.status === 'COMPLETED')) {
+          await prescriptionExam.prescription.update({ status: 'COMPLETED' });
+        }
+      }
+
+      logger.info('Etape d\'examen cloturee', {
+        examId: id,
+        step: current.step?.code,
+        skipped: Boolean(skip),
+        userId: req.user.id
+      });
+
+      res.json({
+        message: skip ? 'Etape ignoree' : 'Etape terminee',
+        examCompleted,
+        nextStep: next ? { id: next.id, order: next.stepOrder } : null
+      });
+    } catch (error) {
+      logger.error('Complete step error:', error);
+      res.status(500).json({ error: 'Erreur lors de la cloture de l\'etape' });
     }
   }
 };

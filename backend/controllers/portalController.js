@@ -1,4 +1,4 @@
-const { Patient, Prescription, PrescriptionExam, Exam, Result, User } = require('../models');
+const { Patient, Prescription, PrescriptionExam, Exam, Result, User, Service } = require('../models');
 const { generatePatientToken } = require('../middleware/patientAuth');
 const logger = require('../utils/logger');
 const path = require('path');
@@ -100,7 +100,8 @@ const portalController = {
               {
                 model: Exam,
                 as: 'exam',
-                attributes: ['id', 'name', 'code', 'category']
+                attributes: ['id', 'name', 'code', 'category', 'serviceId'],
+                include: [{ model: Service, as: 'service', attributes: ['id', 'code', 'name', 'color'] }]
               },
               {
                 model: Result,
@@ -131,6 +132,11 @@ const portalController = {
               examName: pe.exam.name,
               examCode: pe.exam.code,
               examCategory: pe.exam.category,
+              // Service reel realisant l'examen ; `examCategory` reste
+              // renvoye le temps que les anciens clients soient migres.
+              service: pe.exam.service
+                ? { name: pe.exam.service.name, color: pe.exam.service.color }
+                : null,
               prescriptionDate: prescription.createdAt,
               doctor: {
                 name: `Dr. ${prescription.doctor.firstName} ${prescription.doctor.lastName}`,
@@ -232,7 +238,8 @@ const portalController = {
               {
                 model: Exam,
                 as: 'exam',
-                attributes: ['id', 'name', 'code', 'category']
+                attributes: ['id', 'name', 'code', 'category', 'serviceId'],
+                include: [{ model: Service, as: 'service', attributes: ['id', 'code', 'name', 'color'] }]
               },
               {
                 model: Result,
@@ -260,6 +267,9 @@ const portalController = {
           name: pe.exam.name,
           code: pe.exam.code,
           category: pe.exam.category,
+          service: pe.exam.service
+            ? { name: pe.exam.service.name, color: pe.exam.service.color }
+            : null,
           status: pe.status,
           hasValidatedResults: pe.results && pe.results.length > 0
         })),

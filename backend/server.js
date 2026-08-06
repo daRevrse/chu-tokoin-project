@@ -21,6 +21,8 @@ const resultRoutes = require('./routes/results');
 const patientRecordRoutes = require('./routes/patientRecords');
 const portalRoutes = require('./routes/portal');
 const reportRoutes = require('./routes/reports');
+const userRoutes = require('./routes/users');
+const serviceAdminRoutes = require('./routes/serviceAdmin');
 const mobileMoneyRoutes = require('./routes/mobileMoney');
 const healthRoutes = require('./routes/health');
 
@@ -33,8 +35,19 @@ const app = express();
 app.use(helmet());
 
 // Configuration CORS
+// FRONTEND_URL accepte plusieurs origines separees par des virgules, afin de
+// pouvoir servir a la fois le poste local et un appareil du reseau local.
+const allowedOrigins = (process.env.FRONTEND_URL || 'http://localhost:3000')
+  .split(',')
+  .map(o => o.trim())
+  .filter(Boolean);
+
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+  origin: (origin, callback) => {
+    // Pas d'origine = appel hors navigateur (curl, mobile natif) : autorise
+    if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
+    return callback(new Error(`Origine non autorisee par CORS : ${origin}`));
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
@@ -57,7 +70,18 @@ if (process.env.NODE_ENV === 'production') {
 }
 
 // Servir les fichiers statiques (uploads)
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+// Helmet applique par defaut Cross-Origin-Resource-Policy: same-origin, ce qui
+// empecherait le navigateur d'afficher une photo de profil servie par l'API
+// (port 5000) dans une page du frontend (port 3000). On assouplit uniquement
+// pour ce dossier de fichiers statiques.
+app.use(
+  '/uploads',
+  (req, res, next) => {
+    res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+    next();
+  },
+  express.static(path.join(__dirname, 'uploads'))
+);
 
 // Routes de sante (sans authentification)
 app.use('/api/health', healthRoutes);
@@ -75,6 +99,8 @@ app.use('/api/results', resultRoutes);
 app.use('/api/patient-records', patientRecordRoutes);
 app.use('/api/portal', portalLimiter, portalRoutes);
 app.use('/api/reports', reportRoutes);
+app.use('/api/users', userRoutes);
+app.use('/api/admin/services', serviceAdminRoutes);
 
 // Middleware de gestion des erreurs
 app.use(notFound);

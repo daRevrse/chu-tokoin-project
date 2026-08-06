@@ -1,4 +1,4 @@
-const { Prescription, PrescriptionExam, Patient, Exam, User, Payment } = require('../models');
+const { Prescription, PrescriptionExam, Patient, Exam, User, Payment, Service } = require('../models');
 const { validationResult } = require('express-validator');
 const { Op } = require('sequelize');
 const logger = require('../utils/logger');
@@ -78,7 +78,7 @@ const prescriptionController = {
           {
             model: PrescriptionExam,
             as: 'prescriptionExams',
-            include: [{ model: Exam, as: 'exam' }]
+            include: [{ model: Exam, as: 'exam', include: [{ model: Service, as: 'service', attributes: ['id', 'code', 'name', 'color'] }] }]
           }
         ]
       });
@@ -137,7 +137,7 @@ const prescriptionController = {
           {
             model: PrescriptionExam,
             as: 'prescriptionExams',
-            include: [{ model: Exam, as: 'exam' }]
+            include: [{ model: Exam, as: 'exam', include: [{ model: Service, as: 'service', attributes: ['id', 'code', 'name', 'color'] }] }]
           }
         ],
         order: [['createdAt', 'DESC']],
@@ -180,7 +180,7 @@ const prescriptionController = {
             model: PrescriptionExam,
             as: 'prescriptionExams',
             include: [
-              { model: Exam, as: 'exam' },
+              { model: Exam, as: 'exam', include: [{ model: Service, as: 'service', attributes: ['id', 'code', 'name', 'color'] }] },
               {
                 model: User,
                 as: 'performer',
@@ -233,7 +233,7 @@ const prescriptionController = {
           {
             model: PrescriptionExam,
             as: 'prescriptionExams',
-            include: [{ model: Exam, as: 'exam' }]
+            include: [{ model: Exam, as: 'exam', include: [{ model: Service, as: 'service', attributes: ['id', 'code', 'name', 'color'] }] }]
           }
         ]
       });
@@ -344,7 +344,7 @@ const prescriptionController = {
           {
             model: PrescriptionExam,
             as: 'prescriptionExams',
-            include: [{ model: Exam, as: 'exam' }]
+            include: [{ model: Exam, as: 'exam', include: [{ model: Service, as: 'service', attributes: ['id', 'code', 'name', 'color'] }] }]
           }
         ],
         order: [['createdAt', 'DESC']],
@@ -389,7 +389,7 @@ const prescriptionController = {
           {
             model: PrescriptionExam,
             as: 'prescriptionExams',
-            include: [{ model: Exam, as: 'exam' }]
+            include: [{ model: Exam, as: 'exam', include: [{ model: Service, as: 'service', attributes: ['id', 'code', 'name', 'color'] }] }]
           }
         ],
         order: [['createdAt', 'ASC']],
@@ -432,7 +432,7 @@ const prescriptionController = {
           {
             model: PrescriptionExam,
             as: 'prescriptionExams',
-            include: [{ model: Exam, as: 'exam' }]
+            include: [{ model: Exam, as: 'exam', include: [{ model: Service, as: 'service', attributes: ['id', 'code', 'name', 'color'] }] }]
           }
         ]
       });

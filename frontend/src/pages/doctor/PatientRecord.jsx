@@ -30,22 +30,28 @@ import {
   Snackbar
 } from '@mui/material';
 import {
-  Search as SearchIcon,
-  Person as PersonIcon,
-  Assignment as PrescriptionIcon,
-  Science as ExamIcon,
-  Download as DownloadIcon,
-  Visibility as ViewIcon,
-  Link as LinkIcon,
-  ContentCopy as CopyIcon,
-  ExpandMore as ExpandMoreIcon,
-  CheckCircle as ValidatedIcon,
-  PictureAsPdf as PdfIcon,
-  Image as ImageIcon,
-  Description as FileIcon,
-  Preview as PreviewIcon
+  SearchRounded as SearchIcon,
+  PersonRounded as PersonIcon,
+  AssignmentRounded as PrescriptionIcon,
+  DownloadRounded as DownloadIcon,
+  LinkRounded as LinkIcon,
+  ContentCopyRounded as CopyIcon,
+  ExpandMoreRounded as ExpandMoreIcon,
+  CheckCircleRounded as ValidatedIcon,
+  PictureAsPdfRounded as PdfIcon,
+  ImageRounded as ImageIcon,
+  DescriptionRounded as FileIcon,
+  PreviewRounded as PreviewIcon,
+  ClearRounded as ClearIcon
 } from '@mui/icons-material';
 import api from '../../services/api';
+
+// Libelle du service realisant l'examen. Repli sur l'ancienne categorie pour
+// les examens qui ne sont pas encore rattaches a un service.
+const getServiceLabel = (exam) => {
+  if (exam?.service?.name) return exam.service.name;
+  return exam?.category === 'RADIOLOGY' ? 'Radiologie' : 'Laboratoire';
+};
 
 const PatientRecord = ({ initialPatient }) => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -109,6 +115,14 @@ const PatientRecord = ({ initialPatient }) => {
     loadPatientRecord(patient.id);
   };
 
+  // Fonction pour effacer le focus et la sélection active du patient
+  const handleClearSelection = () => {
+    setSelectedPatient(null);
+    setPatientRecord(null);
+    setSearchQuery('');
+    setSearchResults([]);
+  };
+
   const generatePortalLink = async () => {
     if (!selectedPatient) return;
 
@@ -169,7 +183,6 @@ const PatientRecord = ({ initialPatient }) => {
       const response = await api.patch(`/results/${resultId}/validate`);
       showSnackbar('Resultat valide avec succes', 'success');
 
-      // Mettre a jour l'etat local sans recharger
       setPatientRecord(prev => ({
         ...prev,
         prescriptions: prev.prescriptions.map(prescription => ({
@@ -236,60 +249,77 @@ const PatientRecord = ({ initialPatient }) => {
   };
 
   return (
-    <Container maxWidth="xl" sx={{ py: 3 }}>
-      <Typography variant="h4" gutterBottom>
-        Dossiers Patients
-      </Typography>
+    <Container maxWidth={false} sx={{ py: 3, px: { xs: 2, md: 4 } }}>
+      <Box sx={{ mb: 4 }}>
+        <Typography variant="h4" fontWeight="bold" gutterBottom>
+          Dossiers Patients
+        </Typography>
+        <Typography variant="body1" color="textSecondary">
+          Recherchez et consultez l'historique complet des dossiers médicaux.
+        </Typography>
+      </Box>
 
       <Grid container spacing={3}>
-        {/* Colonne de recherche */}
-        <Grid item xs={12} md={4}>
-          <Paper sx={{ p: 2, position: 'sticky', top: 20 }}>
-            <Typography variant="h6" sx={{ mb: 2, display: 'flex', alignItems: 'center' }}>
-              <SearchIcon sx={{ mr: 1 }} />
+        {/* Colonne de recherche (Ajustée pour occuper plus d'espace de manière harmonieuse) */}
+        <Grid size={{ xs: 12, lg: 4 }}>
+          <Paper 
+            elevation={0} 
+            sx={{ 
+              p: 3, 
+              position: 'sticky', 
+              top: 20, 
+              borderRadius: 4, 
+              boxShadow: '0 4px 20px rgba(0,0,0,0.03)' 
+            }}
+          >
+            <Typography variant="h6" fontWeight="bold" sx={{ mb: 3, display: 'flex', alignItems: 'center' }}>
+              <SearchIcon sx={{ mr: 1, color: 'primary.main' }} />
               Rechercher un patient
             </Typography>
 
             <TextField
               fullWidth
-              placeholder="Nom, prenom, numero patient ou telephone..."
+              placeholder="Nom, prenom, numero patient..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
-                    <SearchIcon />
+                    <SearchIcon color="action" />
                   </InputAdornment>
                 ),
-                endAdornment: searchLoading && (
-                  <InputAdornment position="end">
-                    <CircularProgress size={20} />
-                  </InputAdornment>
+                endAdornment: (
+                  searchLoading ? (
+                    <InputAdornment position="end">
+                      <CircularProgress size={20} />
+                    </InputAdornment>
+                  ) : searchQuery ? (
+                    <InputAdornment position="end">
+                      <IconButton size="small" onClick={() => setSearchQuery('')}>
+                        <ClearIcon fontSize="small" />
+                      </IconButton>
+                    </InputAdornment>
+                  ) : null
                 )
               }}
+              sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
             />
 
             {searchResults.length > 0 && (
-              <List sx={{ mt: 1, maxHeight: 300, overflow: 'auto' }}>
+              <List sx={{ mt: 2, maxHeight: 350, overflow: 'auto', bgcolor: '#f8fafc', borderRadius: 2, p: 1 }}>
                 {searchResults.map((patient) => (
                   <ListItemButton
                     key={patient.id}
                     onClick={() => handleSelectPatient(patient)}
-                    sx={{ borderRadius: 1, mb: 0.5, '&:hover': { bgcolor: 'primary.50' } }}
+                    sx={{ borderRadius: 2, mb: 1, '&:hover': { bgcolor: '#e3f2fd' } }}
                   >
                     <ListItemText
-                      primary={`${patient.lastName} ${patient.firstName}`}
+                      primary={<Typography fontWeight="bold">{patient.lastName} {patient.firstName}</Typography>}
                       secondary={
-                        <>
-                          <Typography variant="caption" component="span">
-                            {patient.patientNumber}
-                          </Typography>
-                          {patient.phone && (
-                            <Typography variant="caption" component="span">
-                              {' - '}{patient.phone}
-                            </Typography>
-                          )}
-                        </>
+                        <Box component="span" sx={{ display: 'flex', gap: 1, mt: 0.5 }}>
+                          <Chip label={patient.patientNumber} size="small" variant="outlined" />
+                          {patient.phone && <Typography variant="caption" color="textSecondary">{patient.phone}</Typography>}
+                        </Box>
                       }
                     />
                   </ListItemButton>
@@ -298,19 +328,26 @@ const PatientRecord = ({ initialPatient }) => {
             )}
 
             {selectedPatient && (
-              <Card sx={{ mt: 2, bgcolor: 'primary.50' }}>
-                <CardContent>
-                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                    <PersonIcon sx={{ mr: 1, color: 'primary.main' }} />
-                    <Typography variant="subtitle1" fontWeight="bold">
-                      Patient selectionne
-                    </Typography>
+              <Card elevation={0} sx={{ mt: 3, bgcolor: '#e3f2fd', borderRadius: 3, border: '1px solid #bbdefb' }}>
+                <CardContent sx={{ p: 3 }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                      <PersonIcon sx={{ mr: 1, color: 'primary.main' }} />
+                      <Typography variant="subtitle1" fontWeight="bold">
+                        Patient sélectionné
+                      </Typography>
+                    </Box>
+                    <Tooltip title="Effacer la sélection">
+                      <IconButton size="small" onClick={handleClearSelection} sx={{ color: 'text.secondary', bgcolor: 'white' }}>
+                        <ClearIcon fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
                   </Box>
-                  <Typography variant="body1">
+                  <Typography variant="h6" fontWeight="bold" color="primary.dark">
                     {selectedPatient.lastName} {selectedPatient.firstName}
                   </Typography>
-                  <Typography variant="body2" color="textSecondary">
-                    {selectedPatient.patientNumber}
+                  <Typography variant="body2" color="textSecondary" sx={{ mb: 2 }}>
+                    Matricule : {selectedPatient.patientNumber}
                   </Typography>
 
                   <Button
@@ -318,9 +355,9 @@ const PatientRecord = ({ initialPatient }) => {
                     variant="contained"
                     startIcon={<LinkIcon />}
                     onClick={generatePortalLink}
-                    sx={{ mt: 2 }}
+                    sx={{ borderRadius: 2, textTransform: 'none', boxShadow: 'none' }}
                   >
-                    Generer lien portail
+                    Générer lien portail
                   </Button>
                 </CardContent>
               </Card>
@@ -328,38 +365,40 @@ const PatientRecord = ({ initialPatient }) => {
           </Paper>
         </Grid>
 
-        {/* Colonne du dossier */}
-        <Grid item xs={12} md={8}>
+        {/* Colonne du dossier (Optimisée pour occuper toute la largeur restante) */}
+        <Grid size={{ xs: 12, lg: 8 }}>
           {loading ? (
             <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
               <CircularProgress />
             </Box>
           ) : !patientRecord ? (
-            <Paper sx={{ p: 4, textAlign: 'center' }}>
-              <PersonIcon sx={{ fontSize: 64, color: 'grey.400', mb: 2 }} />
+            <Paper elevation={0} sx={{ p: 6, textAlign: 'center', borderRadius: 4, boxShadow: '0 4px 20px rgba(0,0,0,0.03)' }}>
+              <PersonIcon sx={{ fontSize: 64, color: 'grey.300', mb: 2 }} />
               <Typography color="textSecondary" variant="h6">
-                Recherchez et selectionnez un patient pour afficher son dossier
+                Recherchez et sélectionnez un patient pour afficher son dossier complet
               </Typography>
             </Paper>
           ) : (
             <>
               {/* Informations patient */}
-              <Paper sx={{ p: 2, mb: 2 }}>
-                <Grid container spacing={2}>
-                  <Grid item xs={6} sm={3}>
-                    <Typography variant="caption" color="textSecondary">Nom</Typography>
+              <Paper elevation={0} sx={{ p: 3, mb: 3, borderRadius: 4, boxShadow: '0 4px 20px rgba(0,0,0,0.03)' }}>
+                <Grid container spacing={3}>
+                  <Grid size={{ xs: 6, sm: 3 }}>
+                    <Typography variant="caption" color="textSecondary" fontWeight="bold">Nom</Typography>
                     <Typography variant="body1" fontWeight="bold">{patientRecord.lastName}</Typography>
                   </Grid>
-                  <Grid item xs={6} sm={3}>
-                    <Typography variant="caption" color="textSecondary">Prenom</Typography>
+                  <Grid size={{ xs: 6, sm: 3 }}>
+                    <Typography variant="caption" color="textSecondary" fontWeight="bold">Prénom</Typography>
                     <Typography variant="body1" fontWeight="bold">{patientRecord.firstName}</Typography>
                   </Grid>
-                  <Grid item xs={6} sm={3}>
-                    <Typography variant="caption" color="textSecondary">Matricule</Typography>
-                    <Typography variant="body1" fontWeight="bold">{patientRecord.patientNumber}</Typography>
+                  <Grid size={{ xs: 6, sm: 3 }}>
+                    <Typography variant="caption" color="textSecondary" fontWeight="bold">Matricule</Typography>
+                    <Typography variant="body1" fontWeight="bold">
+                      <Chip label={patientRecord.patientNumber} size="small" color="primary" variant="outlined" />
+                    </Typography>
                   </Grid>
-                  <Grid item xs={6} sm={3}>
-                    <Typography variant="caption" color="textSecondary">Date de naissance</Typography>
+                  <Grid size={{ xs: 6, sm: 3 }}>
+                    <Typography variant="caption" color="textSecondary" fontWeight="bold">Date de naissance</Typography>
                     <Typography variant="body1" fontWeight="bold">
                       {formatDate(patientRecord.dateOfBirth).split(' ')[0]}
                     </Typography>
@@ -368,12 +407,13 @@ const PatientRecord = ({ initialPatient }) => {
               </Paper>
 
               {/* Onglets */}
-              <Paper sx={{ mb: 2 }}>
-                <Tabs value={activeTab} onChange={(e, v) => setActiveTab(v)}>
+              <Paper elevation={0} sx={{ mb: 3, borderRadius: 4, boxShadow: '0 4px 20px rgba(0,0,0,0.03)', overflow: 'hidden' }}>
+                <Tabs value={activeTab} onChange={(e, v) => setActiveTab(v)} sx={{ px: 2, pt: 1 }}>
                   <Tab
                     icon={<PrescriptionIcon />}
                     label={`Prescriptions (${patientRecord.prescriptions?.length || 0})`}
                     iconPosition="start"
+                    sx={{ fontWeight: 'bold', textTransform: 'none' }}
                   />
                 </Tabs>
               </Paper>
@@ -382,15 +422,25 @@ const PatientRecord = ({ initialPatient }) => {
               {activeTab === 0 && (
                 <Box>
                   {patientRecord.prescriptions?.length === 0 ? (
-                    <Alert severity="info">Aucune prescription pour ce patient</Alert>
+                    <Alert severity="info" sx={{ borderRadius: 2 }}>Aucune prescription pour ce patient</Alert>
                   ) : (
                     patientRecord.prescriptions?.map((prescription) => (
-                      <Accordion key={prescription.id} sx={{ mb: 1 }}>
-                        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                      <Accordion 
+                        key={prescription.id} 
+                        elevation={0}
+                        sx={{ 
+                          mb: 2, 
+                          borderRadius: '16px !important', 
+                          boxShadow: '0 4px 20px rgba(0,0,0,0.03)',
+                          overflow: 'hidden',
+                          '&:before': { display: 'none' }
+                        }}
+                      >
+                        <AccordionSummary expandIcon={<ExpandMoreIcon />} sx={{ bgcolor: '#f8fafc', px: 3 }}>
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, width: '100%' }}>
                             <PrescriptionIcon color="primary" />
                             <Box sx={{ flex: 1 }}>
-                              <Typography variant="subtitle1">
+                              <Typography variant="subtitle1" fontWeight="bold">
                                 Prescription du {formatDate(prescription.createdAt).split(' ')[0]}
                               </Typography>
                               <Typography variant="body2" color="textSecondary">
@@ -401,36 +451,38 @@ const PatientRecord = ({ initialPatient }) => {
                               label={getStatusLabel(prescription.status)}
                               color={getStatusColor(prescription.status)}
                               size="small"
+                              sx={{ fontWeight: 'bold' }}
                             />
                           </Box>
                         </AccordionSummary>
-                        <AccordionDetails>
-                          <Typography variant="subtitle2" sx={{ mb: 1 }}>
-                            Examens prescrits:
+                        <AccordionDetails sx={{ p: 3 }}>
+                          <Typography variant="subtitle2" fontWeight="bold" sx={{ mb: 2 }}>
+                            Examens prescrits :
                           </Typography>
                           {prescription.prescriptionExams?.map((pe) => (
-                            <Card key={pe.id} sx={{ mb: 2, bgcolor: 'grey.50' }}>
-                              <CardContent>
+                            <Card key={pe.id} elevation={0} sx={{ mb: 2, bgcolor: '#f8fafc', borderRadius: 3, border: '1px solid', borderColor: 'divider' }}>
+                              <CardContent sx={{ p: 3 }}>
                                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                                   <Box>
-                                    <Typography variant="subtitle1">
+                                    <Typography variant="subtitle1" fontWeight="bold">
                                       {pe.exam?.name}
                                     </Typography>
                                     <Typography variant="body2" color="textSecondary">
-                                      {pe.exam?.code} - {pe.exam?.category === 'RADIOLOGY' ? 'Radiologie' : 'Laboratoire'}
+                                      {pe.exam?.code} — {getServiceLabel(pe.exam)}
                                     </Typography>
                                   </Box>
                                   <Chip
                                     label={getStatusLabel(pe.status)}
                                     color={getStatusColor(pe.status)}
                                     size="small"
+                                    sx={{ fontWeight: 'bold' }}
                                   />
                                 </Box>
 
                                 {pe.results && pe.results.length > 0 && (
-                                  <Box sx={{ mt: 2 }}>
-                                    <Typography variant="body2" fontWeight="bold" sx={{ mb: 1 }}>
-                                      Resultats:
+                                  <Box sx={{ mt: 3 }}>
+                                    <Typography variant="body2" fontWeight="bold" sx={{ mb: 1.5 }}>
+                                      Résultats :
                                     </Typography>
                                     {pe.results.map((result) => (
                                       <Box
@@ -439,16 +491,16 @@ const PatientRecord = ({ initialPatient }) => {
                                           display: 'flex',
                                           alignItems: 'center',
                                           justifyContent: 'space-between',
-                                          p: 1,
-                                          bgcolor: result.isValidated ? 'success.50' : 'warning.50',
-                                          borderRadius: 1,
-                                          mb: 1
+                                          p: 2,
+                                          bgcolor: result.isValidated ? '#e8f5e9' : '#fff3e0',
+                                          borderRadius: 2,
+                                          mb: 1.5
                                         }}
                                       >
-                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                                           {getFileIcon(result.fileType)}
                                           <Box>
-                                            <Typography variant="body2">
+                                            <Typography variant="body2" fontWeight="bold">
                                               {result.fileName}
                                             </Typography>
                                             <Typography variant="caption" color="textSecondary">
@@ -460,9 +512,10 @@ const PatientRecord = ({ initialPatient }) => {
                                           {result.isValidated ? (
                                             <Chip
                                               icon={<ValidatedIcon />}
-                                              label="Valide"
+                                              label="Validé"
                                               size="small"
                                               color="success"
+                                              sx={{ fontWeight: 'bold' }}
                                             />
                                           ) : (
                                             <Button
@@ -470,26 +523,29 @@ const PatientRecord = ({ initialPatient }) => {
                                               variant="contained"
                                               color="success"
                                               onClick={() => handleValidateResult(result.id)}
+                                              sx={{ borderRadius: 2, textTransform: 'none', boxShadow: 'none' }}
                                             >
                                               Valider
                                             </Button>
                                           )}
                                           {(result.fileType === 'PDF' || result.fileType === 'IMAGE') && (
-                                            <Tooltip title="Apercu">
+                                            <Tooltip title="Aperçu" arrow>
                                               <IconButton
                                                 size="small"
                                                 onClick={() => handlePreviewResult(result.id, result.fileName, result.fileType)}
+                                                sx={{ bgcolor: 'white', '&:hover': { bgcolor: '#e3f2fd' } }}
                                               >
-                                                <PreviewIcon />
+                                                <PreviewIcon fontSize="small" />
                                               </IconButton>
                                             </Tooltip>
                                           )}
-                                          <Tooltip title="Telecharger">
+                                          <Tooltip title="Télécharger" arrow>
                                             <IconButton
                                               size="small"
                                               onClick={() => handleDownloadResult(result.id, result.fileName)}
+                                              sx={{ bgcolor: 'white', '&:hover': { bgcolor: '#e3f2fd' } }}
                                             >
-                                              <DownloadIcon />
+                                              <DownloadIcon fontSize="small" />
                                             </IconButton>
                                           </Tooltip>
                                         </Box>
@@ -520,9 +576,10 @@ const PatientRecord = ({ initialPatient }) => {
         }}
         maxWidth="lg"
         fullWidth
+        PaperProps={{ sx: { borderRadius: 4 } }}
       >
-        <DialogTitle>
-          Apercu - {previewDialog.name}
+        <DialogTitle fontWeight="bold">
+          Aperçu - {previewDialog.name}
         </DialogTitle>
         <DialogContent sx={{ minHeight: 500 }}>
           {previewDialog.type === 'IMAGE' ? (
@@ -543,32 +600,41 @@ const PatientRecord = ({ initialPatient }) => {
             />
           ) : null}
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => {
-            if (previewDialog.url) window.URL.revokeObjectURL(previewDialog.url);
-            setPreviewDialog({ open: false, url: '', type: '', name: '' });
-          }}>
+        <DialogActions sx={{ p: 3 }}>
+          <Button 
+            onClick={() => {
+              if (previewDialog.url) window.URL.revokeObjectURL(previewDialog.url);
+              setPreviewDialog({ open: false, url: '', type: '', name: '' });
+            }}
+            sx={{ borderRadius: 2, textTransform: 'none' }}
+          >
             Fermer
           </Button>
         </DialogActions>
       </Dialog>
 
       {/* Dialog lien portail */}
-      <Dialog open={linkDialog.open} onClose={() => setLinkDialog({ open: false, link: '', token: '' })} maxWidth="sm" fullWidth>
-        <DialogTitle>Lien d'acces au portail patient</DialogTitle>
+      <Dialog 
+        open={linkDialog.open} 
+        onClose={() => setLinkDialog({ open: false, link: '', token: '' })} 
+        maxWidth="sm" 
+        fullWidth
+        PaperProps={{ sx: { borderRadius: 4 } }}
+      >
+        <DialogTitle fontWeight="bold">Lien d'accès au portail patient</DialogTitle>
         <DialogContent>
-          <Alert severity="success" sx={{ mb: 2 }}>
-            Lien genere avec succes! Valide pendant 24 heures.
+          <Alert severity="success" sx={{ mb: 3, borderRadius: 2 }}>
+            Lien généré avec succès ! Valide pendant 24 heures.
           </Alert>
           <TextField
             fullWidth
-            label="Lien d'acces"
+            label="Lien d'accès"
             value={linkDialog.link}
             InputProps={{
               readOnly: true,
               endAdornment: (
                 <InputAdornment position="end">
-                  <Tooltip title="Copier">
+                  <Tooltip title="Copier" arrow>
                     <IconButton onClick={() => copyToClipboard(linkDialog.link)}>
                       <CopyIcon />
                     </IconButton>
@@ -576,17 +642,17 @@ const PatientRecord = ({ initialPatient }) => {
                 </InputAdornment>
               )
             }}
-            sx={{ mb: 2 }}
+            sx={{ mb: 2, '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
           />
           <Typography variant="body2" color="textSecondary">
-            Partagez ce lien avec le patient pour qu'il puisse acceder a ses resultats valides.
+            Partagez ce lien avec le patient pour qu'il puisse accéder à ses résultats validés.
           </Typography>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setLinkDialog({ open: false, link: '', token: '' })}>
+        <DialogActions sx={{ p: 3 }}>
+          <Button onClick={() => setLinkDialog({ open: false, link: '', token: '' })} sx={{ borderRadius: 2, textTransform: 'none' }}>
             Fermer
           </Button>
-          <Button variant="contained" onClick={() => copyToClipboard(linkDialog.link)}>
+          <Button variant="contained" onClick={() => copyToClipboard(linkDialog.link)} sx={{ borderRadius: 2, textTransform: 'none', boxShadow: 'none' }}>
             Copier le lien
           </Button>
         </DialogActions>
@@ -603,6 +669,7 @@ const PatientRecord = ({ initialPatient }) => {
           onClose={() => setSnackbar(prev => ({ ...prev, open: false }))}
           severity={snackbar.severity}
           variant="filled"
+          sx={{ borderRadius: 2 }}
         >
           {snackbar.message}
         </Alert>

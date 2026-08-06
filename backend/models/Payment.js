@@ -7,9 +7,9 @@ const Payment = sequelize.define('Payment', {
     defaultValue: DataTypes.UUIDV4,
     primaryKey: true
   },
+  // Unicite declaree via un index nomme (voir `indexes` plus bas)
   paymentNumber: {
     type: DataTypes.STRING(30),
-    unique: true,
     allowNull: false
   },
   prescriptionId: {
@@ -59,6 +59,9 @@ const Payment = sequelize.define('Payment', {
 }, {
   tableName: 'payments',
   timestamps: true,
+  indexes: [
+    { unique: true, fields: ['paymentNumber'], name: 'paymentNumber' }
+  ],
   hooks: {
     beforeValidate: async (payment) => {
       // Generation automatique du numero de paiement si non defini

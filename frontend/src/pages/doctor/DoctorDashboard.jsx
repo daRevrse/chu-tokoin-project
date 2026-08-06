@@ -292,7 +292,7 @@ const DoctorDashboard = () => {
 
       {/* Statistiques Modernisées */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <Card {...cardStyle}>
             <CardContent sx={{ display: 'flex', alignItems: 'center', p: 3 }}>
               <Box sx={{ bgcolor: '#e3f2fd', width: 64, height: 64, borderRadius: 3, display: 'flex', alignItems: 'center', justifyContent: 'center', mr: 2 }}>
@@ -310,7 +310,7 @@ const DoctorDashboard = () => {
           </Card>
         </Grid>
         
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <Card {...cardStyle}>
             <CardContent sx={{ display: 'flex', alignItems: 'center', p: 3 }}>
               <Box sx={{ bgcolor: '#fff3e0', width: 64, height: 64, borderRadius: 3, display: 'flex', alignItems: 'center', justifyContent: 'center', mr: 2 }}>
@@ -328,7 +328,7 @@ const DoctorDashboard = () => {
           </Card>
         </Grid>
 
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <Card {...cardStyle}>
             <CardContent sx={{ display: 'flex', alignItems: 'center', p: 3 }}>
               <Box sx={{ bgcolor: '#e8f5e9', width: 64, height: 64, borderRadius: 3, display: 'flex', alignItems: 'center', justifyContent: 'center', mr: 2 }}>
@@ -346,7 +346,7 @@ const DoctorDashboard = () => {
           </Card>
         </Grid>
 
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <Card {...cardStyle}>
             <CardContent sx={{ display: 'flex', alignItems: 'center', p: 3 }}>
               <Box sx={{ bgcolor: '#f3e5f5', width: 64, height: 64, borderRadius: 3, display: 'flex', alignItems: 'center', justifyContent: 'center', mr: 2 }}>

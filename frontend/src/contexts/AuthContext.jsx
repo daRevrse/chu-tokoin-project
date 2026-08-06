@@ -88,6 +88,13 @@ export const AuthProvider = ({ children }) => {
     }
   }, []);
 
+  // Remplacer l'utilisateur courant a partir d'une reponse serveur
+  // (photo de profil, etc.) en gardant le localStorage synchronise.
+  const applyUser = useCallback((updatedUser) => {
+    localStorage.setItem('user', JSON.stringify(updatedUser));
+    setUser(updatedUser);
+  }, []);
+
   // Verifier si l'utilisateur a un role specifique
   const hasRole = useCallback((roles) => {
     if (!user) return false;
@@ -106,6 +113,7 @@ export const AuthProvider = ({ children }) => {
     login,
     logout,
     updateProfile,
+    applyUser,
     hasRole,
     clearError: () => setError(null)
   };

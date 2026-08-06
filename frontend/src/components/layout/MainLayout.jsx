@@ -29,13 +29,15 @@ import {
   AdminPanelSettingsRounded,
   LogoutRounded,
   NotificationsNoneRounded,
-  BiotechRounded
+  AccountCircleRounded
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import api from '../../services/api';
 
 const drawerWidth = 280;
+
+const API_ORIGIN = (process.env.REACT_APP_API_URL || 'http://localhost:5000/api').replace(/\/api\/?$/, '');
 
 const MainLayout = ({ children }) => {
   const theme = useTheme();
@@ -46,6 +48,7 @@ const MainLayout = ({ children }) => {
   const location = useLocation();
   const { user, logout } = useAuth();
   const [doctorBadge, setDoctorBadge] = useState(0);
+  const avatarSrc = user?.avatarUrl ? `${API_ORIGIN}${user.avatarUrl}` : undefined;
 
   // Fetch notification count for doctors
   useEffect(() => {
@@ -126,22 +129,10 @@ const MainLayout = ({ children }) => {
 
   const drawerContent = (
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-      {/* En-tête Sidebar (Logo H360) */}
-      <Box sx={{ p: 3, display: 'flex', alignItems: 'center', gap: 2 }}>
-        <img src="logo-black.png" alt="Logo" style={{ width: 50, height: 50 }} />
-        <Box>
-          <Typography variant="subtitle1" fontWeight="bold" sx={{ lineHeight: 1.2 }}>
-            H360
-          </Typography>
-          <Typography variant="caption" color="textSecondary">
-            CHU Tokoin
-          </Typography>
-        </Box>
-      </Box>
-
       {/* Profil Utilisateur */}
-      <Box sx={{ px: 3, pb: 3, textAlign: 'center' }}>
-        <Avatar 
+      <Box sx={{ px: 3, pt: 4, pb: 3, textAlign: 'center' }}>
+        <Avatar
+          src={avatarSrc}
           sx={{ width: 64, height: 64, margin: '0 auto', mb: 1, bgcolor: 'primary.main', fontSize: '1.5rem', fontWeight: 'bold' }}
         >
           {user?.firstName?.charAt(0)}{user?.lastName?.charAt(0)}
@@ -194,15 +185,17 @@ const MainLayout = ({ children }) => {
         })}
       </List>
 
-      <Box sx={{ p: 2 }}>
-        <ListItem disablePadding>
-          <ListItemButton onClick={handleLogout} sx={{ borderRadius: 2, color: 'text.secondary', '&:hover': { color: 'error.main', bgcolor: '#ffebee' } }}>
-            <ListItemIcon sx={{ color: 'inherit', minWidth: 40 }}>
-              <LogoutRounded />
-            </ListItemIcon>
-            <ListItemText primary="Déconnexion" primaryTypographyProps={{ fontWeight: 'medium' }} />
-          </ListItemButton>
-        </ListItem>
+      {/* Pied de Sidebar (Logo H360) */}
+      <Box sx={{ p: 3, display: 'flex', alignItems: 'center', gap: 2 }}>
+        <img src="logo-black.png" alt="Logo" style={{ width: 50, height: 50 }} />
+        <Box>
+          <Typography variant="subtitle1" fontWeight="bold" sx={{ lineHeight: 1.2 }}>
+            H360
+          </Typography>
+          <Typography variant="caption" color="textSecondary">
+            CHU Tokoin
+          </Typography>
+        </Box>
       </Box>
     </Box>
   );
@@ -220,8 +213,9 @@ const MainLayout = ({ children }) => {
           <IconButton sx={{ bgcolor: 'white', boxShadow: '0 2px 12px rgba(0,0,0,0.05)', mr: 2 }}>
             <NotificationsNoneRounded color="action" />
           </IconButton>
-          <Avatar 
-            onClick={handleMenuOpen} 
+          <Avatar
+            onClick={handleMenuOpen}
+            src={avatarSrc}
             sx={{ bgcolor: 'primary.main', cursor: 'pointer', width: 40, height: 40, boxShadow: '0 2px 12px rgba(0,0,0,0.1)' }}
           >
             {user?.firstName?.charAt(0)}{user?.lastName?.charAt(0)}
@@ -229,6 +223,9 @@ const MainLayout = ({ children }) => {
           <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={handleMenuClose} transformOrigin={{ horizontal: 'right', vertical: 'top' }} anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}>
             <MenuItem disabled><Typography variant="body2">{user?.email}</Typography></MenuItem>
             <Divider />
+            <MenuItem onClick={() => { handleMenuClose(); navigate('/profile'); }}>
+              <ListItemIcon><AccountCircleRounded fontSize="small" /></ListItemIcon>Mon profil
+            </MenuItem>
             <MenuItem onClick={handleLogout}><ListItemIcon><LogoutRounded fontSize="small" /></ListItemIcon>Déconnexion</MenuItem>
           </Menu>
         </Toolbar>

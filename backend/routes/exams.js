@@ -15,7 +15,18 @@ const createValidation = [
     .trim()
     .notEmpty()
     .withMessage('Le nom est requis'),
+  // Le rattachement se fait desormais par service ; `category` reste accepte
+  // pour les appels qui n'ont pas encore migre.
+  body('serviceId')
+    .optional()
+    .isUUID()
+    .withMessage('Service invalide'),
+  body('categoryId')
+    .optional({ nullable: true })
+    .isUUID()
+    .withMessage('Sous-categorie invalide'),
   body('category')
+    .optional()
     .isIn(['RADIOLOGY', 'LABORATORY'])
     .withMessage('Categorie invalide (RADIOLOGY ou LABORATORY)'),
   body('price')
