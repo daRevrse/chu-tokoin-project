@@ -14,6 +14,10 @@ router.get('/doctor',
   statsController.getDoctorStats
 );
 
+// Compteurs du menu lateral : chaque role y accede, la reponse est filtree
+// selon ce qu'il peut voir.
+router.get('/badges', statsController.getBadges);
+
 // Stats accueil
 router.get('/reception',
   roleCheck('RECEPTIONIST', 'ADMIN'),

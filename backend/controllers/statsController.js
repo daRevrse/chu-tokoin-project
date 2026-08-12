@@ -3,6 +3,7 @@ const { Op } = require('sequelize');
 const sequelize = require('../config/database');
 const { getBusinessDate } = require('../utils/businessDate');
 const { getExamScope, getScopeLabel } = require('../utils/serviceScope');
+const { SERVICE_ROLES } = require('../utils/roles');
 const logger = require('../utils/logger');
 
 const statsController = {
@@ -186,6 +187,79 @@ const statsController = {
     } catch (error) {
       logger.error('Get reception stats error:', error);
       res.status(500).json({ error: 'Erreur lors de la recuperation des statistiques' });
+    }
+  },
+
+  /**
+   * Compteurs d'activite en attente, par espace
+   * GET /api/stats/badges
+   *
+   * Alimente les pastilles du menu lateral. Un seul appel, filtre par role :
+   * le menu n'a pas a savoir quelles statistiques interrogent quel espace, et
+   * un utilisateur ne recoit que les compteurs des espaces qu'il peut ouvrir.
+   *
+   * Ne compte que ce qui appelle une action de l'utilisateur : un chiffre qui
+   * ne redescend jamais serait ignore au bout de deux jours.
+   */
+  getBadges: async (req, res) => {
+    try {
+      const { role } = req.user;
+      const isAdmin = role === 'ADMIN';
+      const badges = {};
+
+      if (role === 'RECEPTIONIST' || isAdmin) {
+        badges.reception = await Visit.count({
+          where: { visitDate: getBusinessDate(), status: 'WAITING' }
+        });
+      }
+
+      if (role === 'DOCTOR' || isAdmin) {
+        // Patients en salle d'attente + resultats en attente de validation.
+        // Les deux demandent une action du medecin, la pastille les cumule.
+        const [waiting, toValidate] = await Promise.all([
+          Visit.count({ where: { visitDate: getBusinessDate(), status: 'WAITING' } }),
+          Result.count({
+            where: { isValidated: false },
+            include: [{
+              model: PrescriptionExam,
+              as: 'prescriptionExam',
+              attributes: [],
+              required: true,
+              include: [{
+                model: Prescription,
+                as: 'prescription',
+                attributes: [],
+                required: true,
+                // Un ADMIN n'a pas de prescriptions propres : il voit le total.
+                ...(isAdmin ? {} : { where: { doctorId: req.user.id } })
+              }]
+            }]
+          })
+        ]);
+        badges.doctor = waiting + toValidate;
+      }
+
+      if (role === 'CASHIER' || isAdmin) {
+        badges.cashier = await Prescription.count({ where: { status: 'PENDING' } });
+      }
+
+      if (SERVICE_ROLES.includes(role) || isAdmin) {
+        badges.service = await PrescriptionExam.count({
+          where: { status: 'PAID' },
+          include: [{
+            model: Exam,
+            as: 'exam',
+            // Un ADMIN n'etant affecte a aucun service, son perimetre est ouvert.
+            where: isAdmin ? {} : getExamScope(req.user),
+            attributes: []
+          }]
+        });
+      }
+
+      res.json({ badges });
+    } catch (error) {
+      logger.error('Get badges error:', error);
+      res.status(500).json({ error: 'Erreur lors de la recuperation des compteurs' });
     }
   },
 
