@@ -12,6 +12,7 @@ const { notFound, errorHandler } = require('./middleware/errorHandler');
 // Import des routes
 const authRoutes = require('./routes/auth');
 const patientRoutes = require('./routes/patients');
+const visitRoutes = require('./routes/visits');
 const examRoutes = require('./routes/exams');
 const prescriptionRoutes = require('./routes/prescriptions');
 const paymentRoutes = require('./routes/payments');
@@ -89,6 +90,7 @@ app.use('/api/health', healthRoutes);
 // Routes API avec rate limiting specifique
 app.use('/api/auth', authLimiter, authRoutes);
 app.use('/api/patients', patientRoutes);
+app.use('/api/visits', visitRoutes);
 app.use('/api/exams', examRoutes);
 app.use('/api/prescriptions', prescriptionRoutes);
 app.use('/api/payments', paymentRoutes);

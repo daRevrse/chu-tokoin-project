@@ -4,6 +4,7 @@ const { body } = require('express-validator');
 const paymentController = require('../controllers/paymentController');
 const authenticateToken = require('../middleware/auth');
 const roleCheck = require('../middleware/roleCheck');
+const { SERVICE_ROLES } = require('../utils/roles');
 
 // Validation pour la creation de paiement
 const createValidation = [
@@ -40,12 +41,12 @@ router.get('/stats/today',
 );
 
 router.get('/:id',
-  roleCheck('CASHIER', 'RADIOLOGIST', 'LAB_TECHNICIAN', 'ADMIN'),
+  roleCheck('CASHIER', ...SERVICE_ROLES, 'ADMIN'),
   paymentController.getById
 );
 
 router.get('/:id/qrcode',
-  roleCheck('CASHIER', 'RADIOLOGIST', 'LAB_TECHNICIAN', 'ADMIN'),
+  roleCheck('CASHIER', ...SERVICE_ROLES, 'ADMIN'),
   paymentController.getQRCode
 );
 

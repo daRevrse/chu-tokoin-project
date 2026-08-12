@@ -1,4 +1,5 @@
 const { Service, ServiceStep, ExamStepProgress } = require('../models');
+const { SERVICE_ROLES } = require('./roles');
 
 // Correspondance historique role -> categorie figee, conservee pour les
 // comptes techniques qui n'ont pas encore de service d'affectation.
@@ -12,6 +13,11 @@ const LEGACY_ROLE_CATEGORY = {
  *
  * Le service d'affectation prime ; a defaut on retombe sur l'ancienne
  * correspondance par role, afin qu'un compte non migre continue de fonctionner.
+ *
+ * Un compte de service sans affectation ni categorie historique (typiquement un
+ * TECHNICIAN cree sans service) ne voit rien plutot que tout : c'est une
+ * mauvaise configuration, et le perimetre vide est le seul repli sur lequel on
+ * peut se tromper sans consequence. Le scope ouvert reste reserve a l'ADMIN.
  */
 const getExamScope = (user) => {
   if (user.serviceId) {
@@ -19,7 +25,14 @@ const getExamScope = (user) => {
   }
 
   const category = LEGACY_ROLE_CATEGORY[user.role];
-  return category ? { category } : {};
+  if (category) return { category };
+
+  // `id IS NULL` sur une cle primaire ne peut jamais etre vrai : perimetre vide.
+  if (SERVICE_ROLES.includes(user.role)) {
+    return { id: null };
+  }
+
+  return {};
 };
 
 /**
@@ -34,6 +47,7 @@ const getScopeLabel = async (user) => {
   const category = LEGACY_ROLE_CATEGORY[user.role];
   if (category === 'RADIOLOGY') return 'radiologie';
   if (category === 'LABORATORY') return 'laboratoire';
+  if (SERVICE_ROLES.includes(user.role)) return 'aucun service affecte';
   return 'votre service';
 };
 
@@ -45,7 +59,11 @@ const isExamInScope = (user, exam) => {
   if (user.serviceId) return exam.serviceId === user.serviceId;
 
   const category = LEGACY_ROLE_CATEGORY[user.role];
-  return category ? exam.category === category : true;
+  if (category) return exam.category === category;
+
+  // Meme raisonnement que getExamScope : un compte de service sans affectation
+  // n'a pas de perimetre, il ne doit rien pouvoir traiter.
+  return !SERVICE_ROLES.includes(user.role);
 };
 
 /**

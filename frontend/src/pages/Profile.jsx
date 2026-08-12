@@ -30,18 +30,22 @@ import { useAuth } from '../contexts/AuthContext';
 const API_ORIGIN = (process.env.REACT_APP_API_URL || 'http://localhost:5000/api').replace(/\/api\/?$/, '');
 
 const ROLE_LABELS = {
+  RECEPTIONIST: 'Accueil',
   DOCTOR: 'Médecin',
   CASHIER: 'Caissier',
   RADIOLOGIST: 'Radiologue',
   LAB_TECHNICIAN: 'Laborantin',
+  TECHNICIAN: 'Technicien',
   ADMIN: 'Administrateur'
 };
 
 const ROLE_COLORS = {
+  RECEPTIONIST: 'secondary',
   DOCTOR: 'primary',
   CASHIER: 'success',
   RADIOLOGIST: 'info',
   LAB_TECHNICIAN: 'warning',
+  TECHNICIAN: 'info',
   ADMIN: 'error'
 };
 

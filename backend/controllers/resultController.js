@@ -3,6 +3,7 @@ const { getFileType } = require('../middleware/upload');
 const { validationResult } = require('express-validator');
 const path = require('path');
 const fs = require('fs');
+const { isExamInScope } = require('../utils/serviceScope');
 const logger = require('../utils/logger');
 
 const resultController = {
@@ -33,13 +34,14 @@ const resultController = {
         return res.status(404).json({ error: 'Examen non trouve' });
       }
 
-      // Verifier les permissions selon le role
-      if (req.user.role !== 'ADMIN') {
-        const userCategory = req.user.role === 'RADIOLOGIST' ? 'RADIOLOGY' : 'LABORATORY';
-        if (prescriptionExam.exam.category !== userCategory) {
-          fs.unlinkSync(req.file.path);
-          return res.status(403).json({ error: 'Vous n\'etes pas autorise a uploader pour cet examen' });
-        }
+      // Verifier que l'examen releve bien du perimetre de l'utilisateur.
+      // `isExamInScope` prend le service d'affectation en priorite et ne
+      // retombe sur la categorie historique que pour les comptes sans service :
+      // le ternaire precedent classait tout non-RADIOLOGIST en laboratoire, ce
+      // qui donnait un perimetre faux a un TECHNICIAN de cardiologie.
+      if (req.user.role !== 'ADMIN' && !isExamInScope(req.user, prescriptionExam.exam)) {
+        fs.unlinkSync(req.file.path);
+        return res.status(403).json({ error: 'Vous n\'etes pas autorise a uploader pour cet examen' });
       }
 
       // Creer le resultat

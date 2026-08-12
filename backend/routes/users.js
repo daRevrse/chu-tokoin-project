@@ -5,7 +5,7 @@ const userController = require('../controllers/userController');
 const authenticateToken = require('../middleware/auth');
 const roleCheck = require('../middleware/roleCheck');
 
-const ROLES = ['DOCTOR', 'CASHIER', 'RADIOLOGIST', 'LAB_TECHNICIAN', 'ADMIN'];
+const { ROLES } = require('../utils/roles');
 
 const createValidation = [
   body('email')
@@ -25,7 +25,13 @@ const createValidation = [
     .withMessage('Le nom est requis'),
   body('role')
     .isIn(ROLES)
-    .withMessage('Role invalide')
+    .withMessage('Role invalide'),
+  // Coherence role/service verifiee dans le controleur (resolveServiceId) :
+  // elle depend du role, ce que la validation par champ ne sait pas exprimer.
+  body('serviceId')
+    .optional({ values: 'null' })
+    .isUUID()
+    .withMessage('Service invalide')
 ];
 
 const updateValidation = [
@@ -47,7 +53,11 @@ const updateValidation = [
   body('role')
     .optional()
     .isIn(ROLES)
-    .withMessage('Role invalide')
+    .withMessage('Role invalide'),
+  body('serviceId')
+    .optional({ values: 'null' })
+    .isUUID()
+    .withMessage('Service invalide')
 ];
 
 const resetPasswordValidation = [

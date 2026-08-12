@@ -38,8 +38,13 @@ Thumbs.db
 desktop.ini
 
 # Uploads (garder le dossier mais pas le contenu)
+# `uploads/*` contient un slash : le motif est ancre a la racine du depot et ne
+# couvrait donc pas backend/uploads/, ou atterrissent les resultats d'examens
+# et les photos de profil. Ces fichiers ne doivent jamais entrer dans l'historique.
 uploads/*
 !uploads/.gitkeep
+backend/uploads/*
+!backend/uploads/.gitkeep
 
 # Misc
 *.pem

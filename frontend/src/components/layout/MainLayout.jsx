@@ -27,6 +27,7 @@ import {
   MedicalServicesRounded,
   ScienceRounded,
   AdminPanelSettingsRounded,
+  SupportAgentRounded,
   LogoutRounded,
   NotificationsNoneRounded,
   AccountCircleRounded
@@ -36,6 +37,10 @@ import { useAuth } from '../../contexts/AuthContext';
 import api from '../../services/api';
 
 const drawerWidth = 280;
+
+// Personnel affecte a un service technique. TECHNICIAN est le role generique
+// des services crees apres coup (Cardiologie, Pneumologie, Prelevement...).
+const SERVICE_ROLES = ['RADIOLOGIST', 'LAB_TECHNICIAN', 'TECHNICIAN'];
 
 const API_ORIGIN = (process.env.REACT_APP_API_URL || 'http://localhost:5000/api').replace(/\/api\/?$/, '');
 
@@ -91,7 +96,9 @@ const MainLayout = ({ children }) => {
       DOCTOR: 'Médecin',
       CASHIER: 'Caissier',
       RADIOLOGIST: 'Radiologue',
-      LAB_TECHNICIAN: 'Laborantin'
+      LAB_TECHNICIAN: 'Laborantin',
+      TECHNICIAN: 'Technicien',
+      RECEPTIONIST: 'Accueil'
     };
     return labels[role] || role;
   };
@@ -102,7 +109,9 @@ const MainLayout = ({ children }) => {
       DOCTOR: 'primary',
       CASHIER: 'success',
       RADIOLOGIST: 'info',
-      LAB_TECHNICIAN: 'warning'
+      LAB_TECHNICIAN: 'warning',
+      TECHNICIAN: 'info',
+      RECEPTIONIST: 'secondary'
     };
     return colors[role] || 'default';
   };
@@ -112,13 +121,17 @@ const MainLayout = ({ children }) => {
       { text: 'Tableau de bord', icon: <DashboardRounded />, path: '/dashboard' }
     ];
 
+    // L'accueil ouvre le circuit : son entree precede celle du medecin.
+    if (user?.role === 'RECEPTIONIST' || user?.role === 'ADMIN') {
+      baseItems.push({ text: 'Espace Accueil', icon: <SupportAgentRounded />, path: '/reception' });
+    }
     if (user?.role === 'DOCTOR' || user?.role === 'ADMIN') {
       baseItems.push({ text: 'Espace Médecin', icon: <MedicalServicesRounded />, path: '/doctor' });
     }
     if (user?.role === 'CASHIER' || user?.role === 'ADMIN') {
       baseItems.push({ text: 'Espace Caisse', icon: <PointOfSaleRounded />, path: '/cashier' });
     }
-    if (user?.role === 'RADIOLOGIST' || user?.role === 'LAB_TECHNICIAN' || user?.role === 'ADMIN') {
+    if (SERVICE_ROLES.includes(user?.role) || user?.role === 'ADMIN') {
       baseItems.push({ text: 'Espace Service', icon: <ScienceRounded />, path: '/service' });
     }
     if (user?.role === 'ADMIN') {

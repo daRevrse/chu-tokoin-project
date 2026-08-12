@@ -45,6 +45,14 @@ const seedData = async () => {
         phone: '+228 90 11 22 22'
       },
       {
+        email: 'accueil@chu-tokoin.tg',
+        password: 'Accueil123!',
+        firstName: 'Akouvi',
+        lastName: 'DOSSEH',
+        role: 'RECEPTIONIST',
+        phone: '+228 90 55 55 55'
+      },
+      {
         email: 'caissier@chu-tokoin.tg',
         password: 'Caissier123!',
         firstName: 'Ama',

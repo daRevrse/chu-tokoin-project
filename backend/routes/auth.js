@@ -5,6 +5,7 @@ const authController = require('../controllers/authController');
 const authenticateToken = require('../middleware/auth');
 const roleCheck = require('../middleware/roleCheck');
 const { avatarUpload } = require('../middleware/upload');
+const { ROLES } = require('../utils/roles');
 
 // Validation pour l'inscription
 const registerValidation = [
@@ -24,7 +25,7 @@ const registerValidation = [
     .notEmpty()
     .withMessage('Le nom est requis'),
   body('role')
-    .isIn(['DOCTOR', 'CASHIER', 'RADIOLOGIST', 'LAB_TECHNICIAN', 'ADMIN'])
+    .isIn(ROLES)
     .withMessage('Role invalide')
 ];
 

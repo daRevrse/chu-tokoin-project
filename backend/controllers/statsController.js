@@ -1,6 +1,8 @@
-const { PrescriptionExam, Exam, User, Payment, Prescription, Patient, Result } = require('../models');
+const { PrescriptionExam, Exam, User, Payment, Prescription, Patient, Result, Visit } = require('../models');
 const { Op } = require('sequelize');
 const sequelize = require('../config/database');
+const { getBusinessDate } = require('../utils/businessDate');
+const { getExamScope, getScopeLabel } = require('../utils/serviceScope');
 const logger = require('../utils/logger');
 
 const statsController = {
@@ -101,6 +103,13 @@ const statsController = {
         }]
       });
 
+      // Patients en salle d'attente : alimente le badge de l'onglet file
+      // d'attente. La file est commune a tous les medecins, ce compte n'est
+      // donc pas filtre sur `doctorId`.
+      const waitingCount = await Visit.count({
+        where: { visitDate: getBusinessDate(), status: 'WAITING' }
+      });
+
       res.json({
         today: {
           prescriptions: prescriptionsToday,
@@ -116,10 +125,66 @@ const statsController = {
           completedThisWeek,
           completedThisMonth
         },
+        waitingCount,
         newResultsCount
       });
     } catch (error) {
       logger.error('Get doctor stats error:', error);
+      res.status(500).json({ error: 'Erreur lors de la recuperation des statistiques' });
+    }
+  },
+
+  /**
+   * Statistiques de l'accueil pour la journee
+   * GET /api/stats/reception
+   */
+  getReceptionStats: async (req, res) => {
+    try {
+      const visitDate = getBusinessDate();
+
+      const [byStatus, urgentWaiting, avgWaitRow] = await Promise.all([
+        Visit.findAll({
+          where: { visitDate },
+          attributes: ['status', [sequelize.fn('COUNT', sequelize.col('id')), 'count']],
+          group: ['status'],
+          raw: true
+        }),
+        Visit.count({
+          where: { visitDate, status: 'WAITING', priority: 'URGENT' }
+        }),
+        // Delai moyen d'attente en minutes, sur les passages du jour deja pris
+        // en charge. Les passages encore en attente sont exclus : leur delai
+        // n'est pas fige.
+        Visit.findAll({
+          where: { visitDate, startedAt: { [Op.ne]: null } },
+          attributes: [
+            [sequelize.fn('AVG', sequelize.literal('TIMESTAMPDIFF(MINUTE, `createdAt`, `startedAt`)')), 'avgWaitMinutes']
+          ],
+          raw: true
+        })
+      ]);
+
+      const counts = byStatus.reduce((acc, row) => {
+        acc[row.status] = Number(row.count);
+        return acc;
+      }, {});
+
+      const avgWaitMinutes = avgWaitRow[0] && avgWaitRow[0].avgWaitMinutes !== null
+        ? Math.round(Number(avgWaitRow[0].avgWaitMinutes))
+        : null;
+
+      res.json({
+        date: visitDate,
+        total: Object.values(counts).reduce((sum, n) => sum + n, 0),
+        waiting: counts.WAITING || 0,
+        inConsult: counts.IN_CONSULT || 0,
+        completed: counts.COMPLETED || 0,
+        cancelled: counts.CANCELLED || 0,
+        urgentWaiting,
+        avgWaitMinutes
+      });
+    } catch (error) {
+      logger.error('Get reception stats error:', error);
       res.status(500).json({ error: 'Erreur lors de la recuperation des statistiques' });
     }
   },
@@ -130,7 +195,12 @@ const statsController = {
    */
   getServiceStats: async (req, res) => {
     try {
-      const userCategory = req.user.role === 'RADIOLOGIST' ? 'RADIOLOGY' : 'LABORATORY';
+      // Le perimetre vient du service d'affectation ; la categorie historique
+      // n'est utilisee qu'en repli pour les comptes sans service. Le ternaire
+      // precedent classait tout non-RADIOLOGIST en laboratoire, ce qui donnait
+      // des chiffres faux a un TECHNICIAN de cardiologie ou de prelevement.
+      const examScope = getExamScope(req.user);
+      const scopeLabel = await getScopeLabel(req.user);
 
       const today = new Date();
       today.setHours(0, 0, 0, 0);
@@ -141,7 +211,7 @@ const statsController = {
         include: [{
           model: Exam,
           as: 'exam',
-          where: { category: userCategory },
+          where: examScope,
           attributes: []
         }]
       });
@@ -152,7 +222,7 @@ const statsController = {
         include: [{
           model: Exam,
           as: 'exam',
-          where: { category: userCategory },
+          where: examScope,
           attributes: []
         }]
       });
@@ -175,7 +245,7 @@ const statsController = {
         include: [{
           model: Exam,
           as: 'exam',
-          where: { category: userCategory },
+          where: examScope,
           attributes: []
         }]
       });
@@ -189,7 +259,7 @@ const statsController = {
         include: [{
           model: Exam,
           as: 'exam',
-          where: { category: userCategory },
+          where: examScope,
           attributes: ['code', 'name']
         }],
         group: ['examId', 'exam.id'],
@@ -209,7 +279,9 @@ const statsController = {
           name: e.exam.name,
           count: parseInt(e.dataValues.count)
         })),
-        category: userCategory
+        // Libelle du perimetre couvert par ces chiffres : nom du service
+        // d'affectation, ou categorie historique pour un compte non migre.
+        scope: scopeLabel
       });
     } catch (error) {
       logger.error('Get service stats error:', error);

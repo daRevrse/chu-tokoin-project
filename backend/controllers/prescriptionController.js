@@ -1,4 +1,4 @@
-const { Prescription, PrescriptionExam, Patient, Exam, User, Payment, Service } = require('../models');
+const { Prescription, PrescriptionExam, Patient, Exam, User, Payment, Service, Visit } = require('../models');
 const { validationResult } = require('express-validator');
 const { Op } = require('sequelize');
 const logger = require('../utils/logger');
@@ -15,7 +15,7 @@ const prescriptionController = {
         return res.status(400).json({ errors: errors.array() });
       }
 
-      const { patientId, examIds, notes } = req.body;
+      const { patientId, examIds, notes, visitId } = req.body;
 
       // Verifier que le patient existe
       const patient = await Patient.findByPk(patientId);
@@ -23,6 +23,28 @@ const prescriptionController = {
         return res.status(404).json({
           error: 'Patient non trouve'
         });
+      }
+
+      // Rattachement au passage en cours. Optionnel : les prescriptions
+      // anterieures a la mise en place de l'accueil n'ont pas de passage.
+      if (visitId) {
+        const visit = await Visit.findByPk(visitId);
+
+        if (!visit) {
+          return res.status(404).json({ error: 'Passage non trouve' });
+        }
+
+        if (visit.patientId !== patientId) {
+          return res.status(400).json({
+            error: 'Ce passage concerne un autre patient'
+          });
+        }
+
+        if (visit.status !== 'IN_CONSULT') {
+          return res.status(409).json({
+            error: `Le passage doit etre en consultation pour recevoir une prescription (statut : ${visit.status})`
+          });
+        }
       }
 
       // Recuperer les examens et calculer le total
@@ -52,6 +74,7 @@ const prescriptionController = {
       const prescription = await Prescription.create({
         patientId,
         doctorId: req.user.id,
+        visitId: visitId || null,
         totalAmount,
         notes
       });

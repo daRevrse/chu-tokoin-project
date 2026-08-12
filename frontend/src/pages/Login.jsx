@@ -45,12 +45,15 @@ const Login = () => {
   // Redirection après connexion
   const getRedirectPath = (role) => {
     switch (role) {
+      case 'RECEPTIONIST':
+        return '/reception';
       case 'DOCTOR':
         return '/doctor';
       case 'CASHIER':
         return '/cashier';
       case 'RADIOLOGIST':
       case 'LAB_TECHNICIAN':
+      case 'TECHNICIAN':
         return '/service';
       case 'ADMIN':
         return '/admin';

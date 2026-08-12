@@ -3,6 +3,11 @@ const { validationResult } = require('express-validator');
 const { Op } = require('sequelize');
 const logger = require('../utils/logger');
 
+// Le formulaire envoie une chaine vide pour les champs facultatifs laisses
+// vides. Sans normalisation, le validateur `isEmail` de Sequelize rejette `''`
+// (il ne saute que `null`), ce qui bloque tout patient sans email.
+const emptyToNull = (value) => (value === '' ? null : value);
+
 const patientController = {
   /**
    * Creer un nouveau patient
@@ -23,8 +28,8 @@ const patientController = {
         dateOfBirth,
         gender,
         phone,
-        address,
-        email
+        address: emptyToNull(address),
+        email: emptyToNull(email)
       });
 
       logger.info('Patient cree', { patientId: patient.id, patientNumber: patient.patientNumber });
@@ -136,8 +141,8 @@ const patientController = {
         dateOfBirth: dateOfBirth || patient.dateOfBirth,
         gender: gender || patient.gender,
         phone: phone || patient.phone,
-        address: address !== undefined ? address : patient.address,
-        email: email !== undefined ? email : patient.email
+        address: address !== undefined ? emptyToNull(address) : patient.address,
+        email: email !== undefined ? emptyToNull(email) : patient.email
       });
 
       logger.info('Patient mis a jour', { patientId: patient.id });

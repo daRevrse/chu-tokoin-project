@@ -28,6 +28,17 @@ const Prescription = sequelize.define('Prescription', {
       key: 'id'
     }
   },
+  // Passage a l'origine de la prescription. Nullable : les prescriptions
+  // anterieures a la mise en place de l'accueil n'en ont pas, et tout le code
+  // aval doit tolerer l'absence de passage.
+  visitId: {
+    type: DataTypes.UUID,
+    allowNull: true,
+    references: {
+      model: 'visits',
+      key: 'id'
+    }
+  },
   prescriptionDate: {
     type: DataTypes.DATE,
     defaultValue: DataTypes.NOW

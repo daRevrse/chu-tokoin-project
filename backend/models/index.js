@@ -11,10 +11,48 @@ const Service = require('./Service');
 const ExamCategory = require('./ExamCategory');
 const ServiceStep = require('./ServiceStep');
 const ExamStepProgress = require('./ExamStepProgress');
+const Visit = require('./Visit');
+const DailyCounter = require('./DailyCounter');
 
 // ==========================================
 // ASSOCIATIONS
 // ==========================================
+
+// Patient - Visit (un patient a autant de passages que de venues)
+Patient.hasMany(Visit, {
+  foreignKey: 'patientId',
+  as: 'visits'
+});
+Visit.belongsTo(Patient, {
+  foreignKey: 'patientId',
+  as: 'patient'
+});
+
+// User (Receptionniste) - Visit
+Visit.belongsTo(User, {
+  foreignKey: 'registeredBy',
+  as: 'receptionist'
+});
+
+// User (Medecin) - Visit (prise en charge)
+User.hasMany(Visit, {
+  foreignKey: 'doctorId',
+  as: 'visitsAsDoctor'
+});
+Visit.belongsTo(User, {
+  foreignKey: 'doctorId',
+  as: 'doctor'
+});
+
+// Visit - Prescription (une consultation peut produire plusieurs ordonnances)
+Visit.hasMany(Prescription, {
+  foreignKey: 'visitId',
+  as: 'prescriptions'
+});
+Prescription.belongsTo(Visit, {
+  foreignKey: 'visitId',
+  as: 'visit'
+});
 
 // Patient - Prescription
 Patient.hasMany(Prescription, {
@@ -229,5 +267,7 @@ module.exports = {
   ExamCategory,
   ServiceStep,
   ExamStepProgress,
+  Visit,
+  DailyCounter,
   syncDatabase
 };

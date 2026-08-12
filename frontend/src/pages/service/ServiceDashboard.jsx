@@ -31,6 +31,13 @@ import ResultUpload from './ResultUpload';
 import ResultsViewer from './ResultsViewer';
 import ExamSteps from './ExamSteps';
 
+// Libelles figes des seuls roles historiques. TECHNICIAN n'y figure pas :
+// son perimetre vient toujours de son service d'affectation.
+const SERVICE_LABEL_BY_ROLE = {
+  RADIOLOGIST: 'Radiologie',
+  LAB_TECHNICIAN: 'Laboratoire'
+};
+
 const ServiceDashboard = () => {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState(0);
@@ -45,10 +52,13 @@ const ServiceDashboard = () => {
   const [viewResultsDialog, setViewResultsDialog] = useState({ open: false, examId: null, examName: '' });
   const [stepsDialog, setStepsDialog] = useState({ open: false, examId: null, examName: '', patientName: '' });
 
-  // Nom du service d'affectation ; repli sur le role pour les comptes qui
-  // n'ont pas encore de service rattache.
+  // Nom du service d'affectation ; repli sur le role pour les seuls comptes
+  // historiques qui n'ont pas encore de service rattache. Un TECHNICIAN sans
+  // service est une anomalie de configuration : mieux vaut le dire que
+  // l'afficher a tort comme laborantin.
   const serviceName = user?.service?.name
-    || (user?.role === 'RADIOLOGIST' ? 'Radiologie' : 'Laboratoire');
+    || SERVICE_LABEL_BY_ROLE[user?.role]
+    || 'Service non affecté';
 
   useEffect(() => {
     fetchData();

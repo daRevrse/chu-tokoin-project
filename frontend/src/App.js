@@ -15,6 +15,7 @@ import Unauthorized from './pages/Unauthorized';
 import Profile from './pages/Profile';
 
 // Dashboards par role
+import ReceptionDashboard from './pages/reception/ReceptionDashboard';
 import DoctorDashboard from './pages/doctor/DoctorDashboard';
 import CashierDashboard from './pages/cashier/CashierDashboard';
 import ServiceDashboard from './pages/service/ServiceDashboard';
@@ -69,6 +70,16 @@ function App() {
               }
             />
 
+            {/* Espace Accueil */}
+            <Route
+              path="/reception/*"
+              element={
+                <ProtectedWithLayout allowedRoles={['RECEPTIONIST', 'ADMIN']}>
+                  <ReceptionDashboard />
+                </ProtectedWithLayout>
+              }
+            />
+
             {/* Espace Medecin */}
             <Route
               path="/doctor/*"
@@ -93,7 +104,7 @@ function App() {
             <Route
               path="/service/*"
               element={
-                <ProtectedWithLayout allowedRoles={['RADIOLOGIST', 'LAB_TECHNICIAN', 'ADMIN']}>
+                <ProtectedWithLayout allowedRoles={['RADIOLOGIST', 'LAB_TECHNICIAN', 'TECHNICIAN', 'ADMIN']}>
                   <ServiceDashboard />
                 </ProtectedWithLayout>
               }
