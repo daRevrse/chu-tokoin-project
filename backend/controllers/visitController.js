@@ -2,6 +2,7 @@ const { sequelize, Visit, Patient, User, Prescription, PrescriptionExam, Exam } 
 const { validationResult } = require('express-validator');
 const { Op } = require('sequelize');
 const { reserveTicketNumber } = require('../services/ticketService');
+const { getReadiness } = require('../services/resultReadinessService');
 const { getBusinessDate, isBusinessDate } = require('../utils/businessDate');
 const logger = require('../utils/logger');
 
@@ -32,6 +33,15 @@ const patientInclude = {
 
 const staffAttributes = ['id', 'firstName', 'lastName', 'role'];
 
+// Prescription dont le patient vient chercher les resultats. Volontairement
+// reduite au strict necessaire : la file n'a besoin que du numero, le detail
+// se recupere via /visits/tracking/:prescriptionNumber.
+const reviewedPrescriptionInclude = {
+  model: Prescription,
+  as: 'reviewedPrescription',
+  attributes: ['id', 'prescriptionNumber', 'status', 'prescriptionDate']
+};
+
 const pickVitals = (body) => VITALS_FIELDS.reduce((acc, field) => {
   if (body[field] !== undefined && body[field] !== '') {
     acc[field] = body[field];
@@ -51,11 +61,49 @@ const visitController = {
         return res.status(400).json({ errors: errors.array() });
       }
 
-      const { patientId, reason, priority = 'NORMAL', notes, force } = req.body;
+      const {
+        patientId,
+        reason,
+        priority = 'NORMAL',
+        notes,
+        force,
+        visitType = 'CONSULTATION',
+        reviewedPrescriptionId
+      } = req.body;
 
       const patient = await Patient.findByPk(patientId);
       if (!patient) {
         return res.status(404).json({ error: 'Patient non trouve' });
+      }
+
+      // Retour du patient pour ses resultats : la prescription doit exister,
+      // lui appartenir, et etre entierement validee. L'accueil ne remet pas un
+      // ticket pour des resultats que le medecin n'a pas encore interpretes.
+      if (visitType === 'RESULT_REVIEW') {
+        if (!reviewedPrescriptionId) {
+          return res.status(400).json({
+            error: 'Un retour resultats doit designer une prescription'
+          });
+        }
+
+        const tracking = await getReadiness({ id: reviewedPrescriptionId });
+
+        if (!tracking) {
+          return res.status(404).json({ error: 'Prescription non trouvee' });
+        }
+
+        if (tracking.patient.id !== patientId) {
+          return res.status(400).json({
+            error: 'Cette prescription concerne un autre patient'
+          });
+        }
+
+        if (!tracking.readiness.ready) {
+          return res.status(409).json({
+            error: 'Les resultats de cette prescription ne sont pas tous valides',
+            readiness: tracking.readiness
+          });
+        }
       }
 
       const visitDate = getBusinessDate();
@@ -88,6 +136,8 @@ const visitController = {
         priority,
         reason,
         notes,
+        visitType,
+        reviewedPrescriptionId: visitType === 'RESULT_REVIEW' ? reviewedPrescriptionId : null,
         registeredBy: req.user.id,
         ...pickVitals(req.body)
       });
@@ -95,7 +145,8 @@ const visitController = {
       const fullVisit = await Visit.findByPk(visit.id, {
         include: [
           patientInclude,
-          { model: User, as: 'receptionist', attributes: staffAttributes }
+          { model: User, as: 'receptionist', attributes: staffAttributes },
+          reviewedPrescriptionInclude,
         ]
       });
 
@@ -114,6 +165,47 @@ const visitController = {
     } catch (error) {
       logger.error('Create visit error:', error);
       res.status(500).json({ error: 'Erreur lors de l\'ouverture du passage' });
+    }
+  },
+
+  /**
+   * Suivi d'une prescription par son numero, pour l'accueil
+   * GET /api/visits/tracking/:prescriptionNumber
+   *
+   * Le patient repart de la caisse avec son numero de prescription ; c'est ce
+   * numero qu'il presente en revenant. Aucun code supplementaire n'est emis :
+   * deux identifiants a presenter au guichet, ce sont des erreurs de saisie.
+   */
+  getTracking: async (req, res) => {
+    try {
+      const prescriptionNumber = String(req.params.prescriptionNumber || '').trim().toUpperCase();
+
+      if (!prescriptionNumber) {
+        return res.status(400).json({ error: 'Numero de prescription requis' });
+      }
+
+      const tracking = await getReadiness({ prescriptionNumber });
+
+      if (!tracking) {
+        return res.status(404).json({
+          error: `Aucune prescription ne porte le numero ${prescriptionNumber}`
+        });
+      }
+
+      // Un passage de retour deja ouvert aujourd'hui : l'accueil doit le voir
+      // pour ne pas remettre un second ticket au meme patient.
+      const activeVisit = await Visit.findOne({
+        where: {
+          reviewedPrescriptionId: tracking.prescription.id,
+          visitDate: getBusinessDate(),
+          status: { [Op.in]: OPEN_STATUSES }
+        }
+      });
+
+      res.json({ ...tracking, activeVisit });
+    } catch (error) {
+      logger.error('Get tracking error:', error);
+      res.status(500).json({ error: 'Erreur lors de la recherche de la prescription' });
     }
   },
 
@@ -147,7 +239,8 @@ const visitController = {
         include: [
           patientInclude,
           { model: User, as: 'doctor', attributes: staffAttributes },
-          { model: User, as: 'receptionist', attributes: staffAttributes }
+          { model: User, as: 'receptionist', attributes: staffAttributes },
+          reviewedPrescriptionInclude,
         ],
         order: QUEUE_ORDER
       });
@@ -185,7 +278,8 @@ const visitController = {
         include: [
           patientInclude,
           { model: User, as: 'doctor', attributes: staffAttributes },
-          { model: User, as: 'receptionist', attributes: staffAttributes }
+          { model: User, as: 'receptionist', attributes: staffAttributes },
+          reviewedPrescriptionInclude,
         ]
       });
 
@@ -213,6 +307,7 @@ const visitController = {
           { model: Patient, as: 'patient' },
           { model: User, as: 'doctor', attributes: staffAttributes },
           { model: User, as: 'receptionist', attributes: staffAttributes },
+          reviewedPrescriptionInclude,
           {
             model: Prescription,
             as: 'prescriptions',
@@ -275,7 +370,8 @@ const visitController = {
       const fullVisit = await Visit.findByPk(visit.id, {
         include: [
           { model: Patient, as: 'patient' },
-          { model: User, as: 'doctor', attributes: staffAttributes }
+          { model: User, as: 'doctor', attributes: staffAttributes },
+          reviewedPrescriptionInclude
         ]
       });
 

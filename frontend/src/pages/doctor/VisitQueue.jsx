@@ -218,9 +218,26 @@ const VisitQueue = ({ onTakeVisit }) => {
                         </Typography>
                       </TableCell>
                       <TableCell sx={{ maxWidth: 220 }}>
-                        <Typography variant="body2" color="text.secondary" noWrap title={visit.reason || ''}>
-                          {visit.reason || '—'}
-                        </Typography>
+                        {/* Un retour resultats n'est pas une consultation : sans
+                            cette distinction, il se noie parmi les malades qui
+                            arrivent et le medecin ne sait pas ce qui l'attend. */}
+                        {visit.visitType === 'RESULT_REVIEW' ? (
+                          <>
+                            <Chip
+                              label="Retour résultats"
+                              size="small"
+                              color="info"
+                              sx={{ fontWeight: 'bold', mb: 0.5 }}
+                            />
+                            <Typography variant="caption" color="text.secondary" display="block">
+                              {visit.reviewedPrescription?.prescriptionNumber}
+                            </Typography>
+                          </>
+                        ) : (
+                          <Typography variant="body2" color="text.secondary" noWrap title={visit.reason || ''}>
+                            {visit.reason || '—'}
+                          </Typography>
+                        )}
                       </TableCell>
                       <TableCell>
                         <Typography variant="caption" color="text.secondary" component="div">

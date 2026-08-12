@@ -41,6 +41,26 @@ const Visit = sequelize.define('Visit', {
     type: DataTypes.ENUM('WAITING', 'IN_CONSULT', 'COMPLETED', 'CANCELLED'),
     defaultValue: 'WAITING'
   },
+  // Motif d'entree dans le circuit. RESULT_REVIEW = le patient revient chercher
+  // l'interpretation d'examens deja realises. Meme file et meme ticket qu'une
+  // consultation, mais le medecin doit pouvoir distinguer les deux : sans cela
+  // les retours entrent en concurrence avec les malades qui arrivent.
+  visitType: {
+    type: DataTypes.ENUM('CONSULTATION', 'RESULT_REVIEW'),
+    defaultValue: 'CONSULTATION',
+    allowNull: false
+  },
+  // Prescription dont le patient vient chercher les resultats. A ne pas
+  // confondre avec l'association inverse (Visit.hasMany(Prescription)), qui
+  // designe les ordonnances *produites* pendant la consultation.
+  reviewedPrescriptionId: {
+    type: DataTypes.UUID,
+    allowNull: true,
+    references: {
+      model: 'prescriptions',
+      key: 'id'
+    }
+  },
   priority: {
     type: DataTypes.ENUM('NORMAL', 'URGENT'),
     defaultValue: 'NORMAL'

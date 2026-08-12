@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Paper,
@@ -38,10 +38,25 @@ const ConsultationView = ({ visit, onBack, onCompleted }) => {
   const [completing, setCompleting] = useState(false);
   const [error, setError] = useState('');
   const [prescriptionDone, setPrescriptionDone] = useState(false);
+  const [review, setReview] = useState(null);
 
   const patient = visit.patient || {};
   const age = calculateAge(patient.dateOfBirth);
   const isUrgent = visit.priority === 'URGENT';
+  const isReview = visit.visitType === 'RESULT_REVIEW';
+
+  // Le patient revient chercher une interpretation : on charge le detail des
+  // examens concernes plutot que de laisser le medecin le rechercher.
+  useEffect(() => {
+    if (!isReview || !visit.reviewedPrescription) return;
+
+    let cancelled = false;
+    api.get(`/visits/tracking/${encodeURIComponent(visit.reviewedPrescription.prescriptionNumber)}`)
+      .then((response) => { if (!cancelled) setReview(response.data); })
+      .catch(() => { /* Le bandeau reste sans detail, la consultation continue. */ });
+
+    return () => { cancelled = true; };
+  }, [isReview, visit.reviewedPrescription]);
 
   const vitals = [
     { label: 'Poids', value: visit.weightKg, unit: 'kg' },
@@ -111,9 +126,32 @@ const ConsultationView = ({ visit, onBack, onCompleted }) => {
             </Typography>
           )}
           {isUrgent && <Chip icon={<UrgentIcon />} label="Urgence" color="error" size="small" sx={{ fontWeight: 'bold' }} />}
+          {isReview && <Chip label="Retour résultats" color="info" size="small" sx={{ fontWeight: 'bold' }} />}
         </Box>
 
-        {visit.reason && (
+        {isReview && (
+          <Box sx={{ mb: 2 }}>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
+              Vient chercher l'interprétation de l'ordonnance{' '}
+              <strong>{visit.reviewedPrescription?.prescriptionNumber}</strong>
+            </Typography>
+            {review && (
+              <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mt: 1 }}>
+                {review.exams.map((exam) => (
+                  <Chip
+                    key={exam.prescriptionExamId}
+                    label={exam.service ? `${exam.name} · ${exam.service.name}` : exam.name}
+                    size="small"
+                    variant="outlined"
+                    color="success"
+                  />
+                ))}
+              </Box>
+            )}
+          </Box>
+        )}
+
+        {!isReview && visit.reason && (
           <>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
               Motif relevé à l'accueil

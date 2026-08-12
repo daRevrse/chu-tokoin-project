@@ -16,6 +16,7 @@ import {
   PersonSearchRounded as PersonSearchIcon,
   PersonAddRounded as PersonAddIcon,
   QueueRounded as QueueIcon,
+  QrCode2Rounded as CodeIcon,
   HourglassEmptyRounded as WaitingIcon,
   MedicalServicesRounded as InConsultIcon,
   TodayRounded as TodayIcon,
@@ -27,6 +28,7 @@ import PatientForm from '../../components/patient/PatientForm';
 import VisitForm from './VisitForm';
 import TicketPrint from './TicketPrint';
 import QueueBoard from './QueueBoard';
+import ResultTracking from './ResultTracking';
 
 // Etapes du parcours d'enregistrement, dans l'ordre :
 // recherche -> (creation patient) -> ouverture du passage -> ticket
@@ -203,6 +205,7 @@ const ReceptionDashboard = () => {
           }}
         >
           <Tab icon={<PersonSearchIcon />} label="Enregistrer un patient" iconPosition="start" />
+          <Tab icon={<CodeIcon />} label="Retour résultats" iconPosition="start" />
           <Tab
             icon={
               <Badge badgeContent={stats.waiting} color="warning">
@@ -240,6 +243,12 @@ const ReceptionDashboard = () => {
       )}
 
       {activeTab === 1 && (
+        <Paper elevation={0} sx={{ p: 4, borderRadius: 4, boxShadow: '0 4px 20px rgba(0,0,0,0.03)' }}>
+          <ResultTracking onVisitCreated={handleVisitCreated} />
+        </Paper>
+      )}
+
+      {activeTab === 2 && (
         <Paper elevation={0} sx={{ p: 4, borderRadius: 4, boxShadow: '0 4px 20px rgba(0,0,0,0.03)' }}>
           <QueueBoard />
         </Paper>

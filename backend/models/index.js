@@ -54,6 +54,13 @@ Prescription.belongsTo(Visit, {
   as: 'visit'
 });
 
+// Visit - Prescription relue (retour du patient pour ses resultats). Relation
+// distincte de la precedente : ici la prescription preexiste au passage.
+Visit.belongsTo(Prescription, {
+  foreignKey: 'reviewedPrescriptionId',
+  as: 'reviewedPrescription'
+});
+
 // Patient - Prescription
 Patient.hasMany(Prescription, {
   foreignKey: 'patientId',

@@ -35,6 +35,16 @@ const createValidation = [
     .trim()
     .isLength({ max: 1000 })
     .withMessage('Motif trop long'),
+  body('visitType')
+    .optional()
+    .isIn(['CONSULTATION', 'RESULT_REVIEW'])
+    .withMessage('Type de passage invalide'),
+  // La coherence avec `visitType` et l'etat des resultats est verifiee dans le
+  // controleur : elle depend d'autres champs et de la base.
+  body('reviewedPrescriptionId')
+    .optional({ values: 'null' })
+    .isUUID()
+    .withMessage('Prescription invalide'),
   ...vitalsValidation
 ];
 
@@ -65,6 +75,14 @@ router.patch('/:id/vitals',
 router.get('/queue',
   roleCheck('RECEPTIONIST', 'DOCTOR', 'ADMIN'),
   visitController.getQueue
+);
+
+// Suivi d'une prescription par son numero : c'est le geste de l'accueil quand
+// le patient revient. Le medecin y a acces pour repondre a une question au
+// telephone sans avoir a ouvrir le dossier complet.
+router.get('/tracking/:prescriptionNumber',
+  roleCheck('RECEPTIONIST', 'DOCTOR', 'ADMIN'),
+  visitController.getTracking
 );
 
 router.get('/today/:ticketNumber',

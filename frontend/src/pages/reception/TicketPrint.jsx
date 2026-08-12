@@ -71,6 +71,10 @@ const TicketPrint = ({ visit, onNext }) => {
           <Chip label="URGENCE" color="error" sx={{ mb: 2, fontWeight: 'bold' }} />
         )}
 
+        {visit.visitType === 'RESULT_REVIEW' && (
+          <Chip label="RETOUR RÉSULTATS" color="info" sx={{ mb: 2, fontWeight: 'bold' }} />
+        )}
+
         <Typography
           sx={{
             fontSize: 96,
@@ -91,7 +95,11 @@ const TicketPrint = ({ visit, onNext }) => {
           {patient.patientNumber}
         </Typography>
 
-        {visit.reason && (
+        {visit.reviewedPrescription ? (
+          <Typography variant="body2" sx={{ mb: 2 }}>
+            <strong>Ordonnance :</strong> {visit.reviewedPrescription.prescriptionNumber}
+          </Typography>
+        ) : visit.reason && (
           <Typography variant="body2" sx={{ mb: 2 }}>
             <strong>Motif :</strong> {visit.reason}
           </Typography>
