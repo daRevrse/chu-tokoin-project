@@ -86,10 +86,18 @@ const CashierDashboard = () => {
     setSelectedPrescription(prescription);
   };
 
-  const handlePaymentSuccess = () => {
-    setSelectedPrescription(null);
+  // Le paiement est enregistre : on rafraichit les listes en arriere-plan mais
+  // on laisse l'ecran de recu affiche. Il porte le QR code et la date de
+  // disponibilite a annoncer au patient ; le fermer aussitot les rendait
+  // invisibles.
+  const handlePaymentRecorded = () => {
     fetchRecentPayments();
     fetchStats();
+  };
+
+  // La caissiere a fini d'annoncer et de remettre le recu.
+  const handlePaymentDone = () => {
+    setSelectedPrescription(null);
     setActiveTab(1);
   };
 
@@ -137,7 +145,8 @@ const CashierDashboard = () => {
         <PaymentForm
           prescription={selectedPrescription}
           onBack={() => setSelectedPrescription(null)}
-          onSuccess={handlePaymentSuccess}
+          onSuccess={handlePaymentRecorded}
+          onDone={handlePaymentDone}
         />
       </Container>
     );

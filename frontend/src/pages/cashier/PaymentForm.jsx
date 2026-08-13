@@ -26,12 +26,17 @@ import {
   QrCode2Rounded as QrIcon,
   DownloadRounded as DownloadIcon,
   PersonRounded as PersonIcon,
-  AssignmentRounded as PrescriptionIcon
+  AssignmentRounded as PrescriptionIcon,
+  ScheduleRounded as ScheduleIcon
 } from '@mui/icons-material';
 import api from '../../services/api';
 import MobileMoneyPayment from '../../components/cashier/MobileMoneyPayment';
+import { formatExpectedResult } from '../../utils/resultDelay';
 
-const PaymentForm = ({ prescription, onBack, onSuccess }) => {
+// `onSuccess` signale que le paiement est enregistre (le parent rafraichit ses
+// listes) ; `onDone` que la caissiere en a fini avec le recu. Les separer evite
+// que l'ecran de recu soit demonte avant d'avoir ete lu.
+const PaymentForm = ({ prescription, onBack, onSuccess, onDone }) => {
   const [paymentMethod, setPaymentMethod] = useState('CASH');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -99,6 +104,12 @@ const PaymentForm = ({ prescription, onBack, onSuccess }) => {
 
   // Affichage du resultat de paiement avec QR code
   if (paymentResult) {
+    // Le paiement Mobile Money confirme hors de cet ecran ne renvoie que le QR ;
+    // l'estimation est alors absente et le bandeau ne s'affiche pas.
+    const expectedResultLabel = formatExpectedResult(
+      paymentResult.payment.prescription?.expectedResultAt
+    );
+
     return (
       <Box>
         <Alert
@@ -108,6 +119,24 @@ const PaymentForm = ({ prescription, onBack, onSuccess }) => {
         >
           Paiement effectué avec succès !
         </Alert>
+
+        {/* Message a dire au patient avant qu'il ne parte. Sans date annoncee,
+            il revient trop tot : c'est le principal cout d'un circuit ou c'est
+            lui qui repasse a l'accueil. */}
+        {expectedResultLabel && (
+          <Alert
+            severity="info"
+            icon={<ScheduleIcon />}
+            sx={{ mb: 3, borderRadius: 3, alignItems: 'center' }}
+          >
+            <Typography variant="body2">
+              À annoncer au patient : ses résultats seront disponibles{' '}
+              <strong>{expectedResultLabel}</strong>.
+              Il devra revenir à l'accueil avec le numéro{' '}
+              <strong>{paymentResult.payment.prescription?.prescriptionNumber}</strong>.
+            </Typography>
+          </Alert>
+        )}
 
         <Grid container spacing={3}>
           <Grid size={{ xs: 12, md: 6 }}>
@@ -238,6 +267,19 @@ const PaymentForm = ({ prescription, onBack, onSuccess }) => {
                 Télécharger le QR Code
               </Button>
             </Paper>
+          </Grid>
+
+          <Grid size={12}>
+            <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <Button
+                variant="outlined"
+                size="large"
+                onClick={onDone || onBack}
+                sx={{ borderRadius: 2, textTransform: 'none', px: 4 }}
+              >
+                Terminer
+              </Button>
+            </Box>
           </Grid>
         </Grid>
       </Box>

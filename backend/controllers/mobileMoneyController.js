@@ -1,6 +1,7 @@
 const { Payment, Prescription, PrescriptionExam, MobileMoneyTransaction } = require('../models');
 const mobileMoneyService = require('../services/mobileMoneyService');
 const qrcodeService = require('../services/qrcodeService');
+const { recordExpectedResultAt } = require('../services/resultReadinessService');
 const logger = require('../utils/logger');
 
 const mobileMoneyController = {
@@ -166,6 +167,9 @@ const mobileMoneyController = {
           { where: { prescriptionId: payment.prescriptionId } }
         );
 
+          // Date annoncee au patient, figee a l'instant du paiement.
+          await recordExpectedResultAt(payment.prescriptionId, payment.paymentDate);
+
         logger.info('Mobile money payment successful', {
           paymentId: payment.id,
           transactionId: result.transactionId
@@ -257,6 +261,9 @@ const mobileMoneyController = {
             { where: { prescriptionId: payment.prescriptionId } }
           );
 
+            // Date annoncee au patient, figee a l'instant du paiement.
+            await recordExpectedResultAt(payment.prescriptionId, payment.paymentDate);
+
           logger.info('Mobile money payment confirmed via status check', { paymentId: payment.id });
         }
       }
@@ -329,6 +336,9 @@ const mobileMoneyController = {
           { status: 'PAID' },
           { where: { prescriptionId: payment.prescriptionId } }
         );
+
+          // Date annoncee au patient, figee a l'instant du paiement.
+          await recordExpectedResultAt(payment.prescriptionId, payment.paymentDate);
 
         logger.info('Simulated successful callback', { paymentId });
       } else {

@@ -104,7 +104,10 @@ const getReadiness = async (where) => {
       prescriptionNumber: prescription.prescriptionNumber,
       status: prescription.status,
       prescriptionDate: prescription.prescriptionDate,
-      totalAmount: prescription.totalAmount
+      totalAmount: prescription.totalAmount,
+      // Date annoncee au patient a la caisse : l'accueil doit pouvoir la lui
+      // rappeler quand il repasse trop tot.
+      expectedResultAt: prescription.expectedResultAt
     },
     patient: prescription.patient,
     exams,
@@ -112,4 +115,45 @@ const getReadiness = async (where) => {
   };
 };
 
-module.exports = { getReadiness };
+/**
+ * Fige la date de disponibilite annoncee au patient, au moment du paiement.
+ *
+ * Le delai retenu est le **plus long** des examens de l'ordonnance, et non
+ * leur somme : les services travaillent en parallele, et la prescription n'est
+ * prete que lorsque le dernier examen est valide (voir summarize).
+ *
+ * Appelee depuis tous les chemins qui passent une prescription a PAID (caisse
+ * et Mobile Money) : recalculer l'estimation dans chacun les ferait diverger.
+ *
+ * Note : le calcul est une simple addition d'heures. Les horaires d'ouverture
+ * et les jours feries ne sont modelises nulle part dans l'application ; une
+ * estimation tombant un dimanche reste donc possible.
+ *
+ * @param {string} prescriptionId
+ * @param {Date} [from] - point de depart, l'instant du paiement par defaut
+ * @returns {Promise<Date|null>} la date annoncee, ou null si rien a estimer
+ */
+const recordExpectedResultAt = async (prescriptionId, from = new Date()) => {
+  const prescription = await Prescription.findByPk(prescriptionId, {
+    include: [{
+      model: PrescriptionExam,
+      as: 'prescriptionExams',
+      include: [{ model: Exam, as: 'exam', attributes: ['id', 'resultDelayHours'] }]
+    }]
+  });
+
+  if (!prescription) return null;
+
+  const delays = (prescription.prescriptionExams || [])
+    .map(pe => (pe.exam ? pe.exam.resultDelayHours : null))
+    .filter(h => Number.isFinite(h));
+
+  if (delays.length === 0) return null;
+
+  const expectedResultAt = new Date(from.getTime() + Math.max(...delays) * 60 * 60 * 1000);
+  await prescription.update({ expectedResultAt });
+
+  return expectedResultAt;
+};
+
+module.exports = { getReadiness, recordExpectedResultAt };

@@ -1,6 +1,7 @@
 const { Payment, Prescription, PrescriptionExam, Patient, Exam, User } = require('../models');
 const qrcodeService = require('../services/qrcodeService');
 const { validationResult } = require('express-validator');
+const { recordExpectedResultAt } = require('../services/resultReadinessService');
 const logger = require('../utils/logger');
 
 const paymentController = {
@@ -77,6 +78,10 @@ const paymentController = {
         { status: 'PAID' },
         { where: { prescriptionId: prescription.id } }
       );
+
+      // Date annoncee au patient sur son recu : le paiement est le point de
+      // depart du delai, c'est donc ici qu'elle se fige.
+      await recordExpectedResultAt(prescription.id, payment.paymentDate);
 
       // Recharger le paiement avec les relations
       const fullPayment = await Payment.findByPk(payment.id, {

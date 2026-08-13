@@ -24,6 +24,7 @@ import {
   SearchRounded as SearchIcon
 } from '@mui/icons-material';
 import api from '../../services/api';
+import { formatExpectedResult, isExpectedResultPassed } from '../../utils/resultDelay';
 
 // Trois etats distincts pour un examen. « Deposé » n'est pas « disponible » :
 // tant que le medecin n'a pas valide, le patient ne doit pas etre rappele.
@@ -85,6 +86,13 @@ const ResultTracking = ({ onVisitCreated }) => {
   };
 
   const inputStyle = { '& .MuiOutlinedInput-root': { borderRadius: 2 } };
+
+  const expectedLabel = tracking
+    ? formatExpectedResult(tracking.prescription.expectedResultAt)
+    : null;
+  const expectedPassed = tracking
+    ? isExpectedResultPassed(tracking.prescription.expectedResultAt)
+    : false;
 
   return (
     <Box>
@@ -195,7 +203,15 @@ const ResultTracking = ({ onVisitCreated }) => {
                   .map(m => (m.service ? `${m.name} (${m.service})` : m.name))
                   .join(', ')}
               </strong>
-              . Le patient doit repasser plus tard.
+              .{' '}
+              {/* La date annoncee a la caisse sert de reponse au patient. Si
+                  elle est deja passee, le dire franchement plutot que de la
+                  repeter : c'est le delai qui a ete trop court. */}
+              {expectedLabel
+                ? (expectedPassed
+                  ? `La date annoncée (${expectedLabel}) est dépassée : prévenir le service concerné.`
+                  : `Le patient a été informé d'une disponibilité ${expectedLabel}.`)
+                : 'Le patient doit repasser plus tard.'}
             </Alert>
           )}
         </Paper>
