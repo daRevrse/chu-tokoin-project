@@ -5,6 +5,7 @@ import CssBaseline from '@mui/material/CssBaseline';
 
 import theme from './theme';
 import { AuthProvider } from './contexts/AuthContext';
+import { HospitalProvider } from './contexts/HospitalContext';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import MainLayout from './components/layout/MainLayout';
 
@@ -41,6 +42,7 @@ function App() {
     <ThemeProvider theme={theme}>
       <CssBaseline />
       
+      <HospitalProvider>
       <AuthProvider>
         <BrowserRouter>
         {/* <Screensaver timeout={3000} /> */}
@@ -128,6 +130,7 @@ function App() {
           </Routes>
         </BrowserRouter>
       </AuthProvider>
+      </HospitalProvider>
     </ThemeProvider>
   );
 }

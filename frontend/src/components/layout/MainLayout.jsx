@@ -33,6 +33,8 @@ import {
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import { useHospital } from '../../contexts/HospitalContext';
+import { APP_IDENTITY } from '../../config/appIdentity';
 import api from '../../services/api';
 
 const drawerWidth = 280;
@@ -51,6 +53,7 @@ const MainLayout = ({ children }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, logout } = useAuth();
+  const { hospital } = useHospital();
   const [badges, setBadges] = useState({});
   const avatarSrc = user?.avatarUrl ? `${API_ORIGIN}${user.avatarUrl}` : undefined;
 
@@ -225,15 +228,15 @@ const MainLayout = ({ children }) => {
         })}
       </List>
 
-      {/* Pied de Sidebar (Logo H360) */}
+      {/* Pied de Sidebar : le produit, puis l'établissement qui l'exploite */}
       <Box sx={{ p: 3, display: 'flex', alignItems: 'center', gap: 2 }}>
-        <img src="logo-black.png" alt="Logo" style={{ width: 50, height: 50 }} />
-        <Box>
+        <img src={APP_IDENTITY.logo} alt={APP_IDENTITY.name} style={{ width: 50, height: 50 }} />
+        <Box sx={{ minWidth: 0 }}>
           <Typography variant="subtitle1" fontWeight="bold" sx={{ lineHeight: 1.2 }}>
-            H360
+            {APP_IDENTITY.name}
           </Typography>
-          <Typography variant="caption" color="textSecondary">
-            CHU Tokoin
+          <Typography variant="caption" color="textSecondary" noWrap display="block">
+            {hospital.name}
           </Typography>
         </Box>
       </Box>

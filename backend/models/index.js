@@ -13,6 +13,7 @@ const ServiceStep = require('./ServiceStep');
 const ExamStepProgress = require('./ExamStepProgress');
 const Visit = require('./Visit');
 const DailyCounter = require('./DailyCounter');
+const HospitalSettings = require('./HospitalSettings');
 
 // ==========================================
 // ASSOCIATIONS
@@ -276,5 +277,6 @@ module.exports = {
   ExamStepProgress,
   Visit,
   DailyCounter,
+  HospitalSettings,
   syncDatabase
 };

@@ -11,6 +11,7 @@ import {
   PrintRounded as PrintIcon,
   PersonAddRounded as NextPatientIcon
 } from '@mui/icons-material';
+import { useHospital } from '../../contexts/HospitalContext';
 
 /**
  * Ticket remis au patient a l'issue de l'enregistrement.
@@ -19,6 +20,8 @@ import {
  * masque tout sauf le ticket, ce qui evite d'imprimer la navigation.
  */
 const TicketPrint = ({ visit, onNext }) => {
+  const { hospital, logoSrc } = useHospital();
+
   if (!visit) return null;
 
   const patient = visit.patient || {};
@@ -60,8 +63,16 @@ const TicketPrint = ({ visit, onNext }) => {
           borderColor: isUrgent ? 'error.main' : 'divider'
         }}
       >
-        <Typography variant="overline" color="text.secondary" letterSpacing={2}>
-          CHU Tokoin
+        {logoSrc && (
+          <Box
+            component="img"
+            src={logoSrc}
+            alt={hospital.name}
+            sx={{ height: 48, maxWidth: '60%', objectFit: 'contain', mb: 1 }}
+          />
+        )}
+        <Typography variant="overline" color="text.secondary" letterSpacing={2} display="block">
+          {hospital.name}
         </Typography>
         <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
           Ticket de passage
@@ -111,6 +122,18 @@ const TicketPrint = ({ visit, onNext }) => {
         <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 2 }}>
           Conservez ce ticket, il sera demandé par le médecin.
         </Typography>
+
+        {/* Coordonnées de l'établissement, renseignées par l'administrateur */}
+        {[hospital.address, hospital.city].filter(Boolean).length > 0 && (
+          <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 1 }}>
+            {[hospital.address, hospital.city].filter(Boolean).join(', ')}
+          </Typography>
+        )}
+        {hospital.phone && (
+          <Typography variant="caption" color="text.secondary" display="block">
+            Tél. {hospital.phone}
+          </Typography>
+        )}
       </Paper>
 
       <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center', mt: 4 }} className="no-print">

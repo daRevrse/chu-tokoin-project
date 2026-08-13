@@ -1,7 +1,33 @@
+const fs = require('fs');
+const path = require('path');
 const { Prescription, PrescriptionExam, Patient, Exam, User, Payment, Service, Visit } = require('../models');
 const { validationResult } = require('express-validator');
 const { Op } = require('sequelize');
 const logger = require('../utils/logger');
+const { getHospitalSettings, getDocumentHeaderLines } = require('../services/hospitalSettingsService');
+
+/**
+ * Chemin disque du logo, s'il est imprimable par PDFKit (PNG et JPEG
+ * uniquement : un logo SVG ou WEBP reste affichable a l'ecran mais l'en-tete
+ * du PDF se rabat alors sur le seul nom de l'etablissement).
+ */
+const getPrintableLogoPath = (logoUrl) => {
+  if (!logoUrl) return null;
+
+  try {
+    const uploadDir = process.env.UPLOAD_PATH || './uploads';
+    const brandingDir = path.resolve(uploadDir, 'branding');
+    const filePath = path.resolve(uploadDir, logoUrl.replace(/^\/uploads\//, ''));
+
+    if (!filePath.startsWith(brandingDir + path.sep)) return null;
+    if (!['.png', '.jpg', '.jpeg'].includes(path.extname(filePath).toLowerCase())) return null;
+    if (!fs.existsSync(filePath)) return null;
+
+    return filePath;
+  } catch (error) {
+    return null;
+  }
+};
 
 const prescriptionController = {
   /**
@@ -464,6 +490,8 @@ const prescriptionController = {
         return res.status(404).json({ error: 'Prescription non trouvee' });
       }
 
+      const hospital = await getHospitalSettings();
+
       const doc = new PDFDocument({ size: 'A4', margin: 50 });
 
       res.setHeader('Content-Type', 'application/pdf');
@@ -471,10 +499,22 @@ const prescriptionController = {
 
       doc.pipe(res);
 
-      // Header
-      doc.fontSize(20).font('Helvetica-Bold').text('CHU TOKOIN', { align: 'center' });
-      doc.fontSize(10).font('Helvetica').text('Centre Hospitalier Universitaire de Tokoin - Lome, Togo', { align: 'center' });
+      // En-tete : identite de l'etablissement, administrable
+      const logoPath = getPrintableLogoPath(hospital.logoUrl);
+      if (logoPath) {
+        // Logo cale a gauche, le bloc texte restant centre sur la page
+        const headerTop = doc.y;
+        doc.image(logoPath, 50, headerTop, { fit: [60, 60] });
+        doc.y = headerTop;
+      }
+
+      doc.fontSize(20).font('Helvetica-Bold').text(hospital.name.toUpperCase(), { align: 'center' });
+      doc.fontSize(10).font('Helvetica');
+      getDocumentHeaderLines(hospital).forEach((line) => {
+        doc.text(line, { align: 'center' });
+      });
       doc.moveDown(0.5);
+      if (logoPath && doc.y < 120) doc.y = 120;
       doc.moveTo(50, doc.y).lineTo(545, doc.y).stroke();
       doc.moveDown(1);
 
@@ -567,6 +607,12 @@ const prescriptionController = {
           50, 750,
           { align: 'center' }
         );
+
+      // Mention legale propre a l'etablissement (agrement, RCCM, ...)
+      if (hospital.documentFooter) {
+        doc.fontSize(8).font('Helvetica')
+          .text(hospital.documentFooter, 50, 762, { align: 'center', width: 495 });
+      }
 
       doc.end();
     } catch (error) {

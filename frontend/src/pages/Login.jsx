@@ -28,6 +28,8 @@ import {
   VerifiedUserOutlined
 } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext'; // Assurez-vous que ce chemin est correct
+import { useHospital } from '../contexts/HospitalContext';
+import { APP_IDENTITY } from '../config/appIdentity';
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -37,6 +39,7 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
 
   const { login } = useAuth();
+  const { hospital, logoSrc } = useHospital();
   const navigate = useNavigate();
   const location = useLocation();
   const backgroundImage = '/images/background-login.jpg';
@@ -122,15 +125,15 @@ const Login = () => {
             position: 'relative',
           }}
         >
-          {/* Logo H360 */}
+          {/* Identité du produit : la même chez tous les établissements */}
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <img src="logo-nobg.png" alt="Logo" style={{ width: 50, height: 50 }} />
+            <img src={APP_IDENTITY.logoOnDark} alt={APP_IDENTITY.name} style={{ width: 50, height: 50 }} />
             <Box>
               <Typography variant="h6" fontWeight="bold" sx={{ lineHeight: 1 }}>
-                H360
+                {APP_IDENTITY.name}
               </Typography>
               <Typography variant="caption" sx={{ opacity: 0.8 }}>
-                Solution Hospitalière Intelligente
+                {APP_IDENTITY.tagline}
               </Typography>
             </Box>
           </Box>
@@ -181,11 +184,11 @@ const Login = () => {
             justifyContent: 'center'
           }}
         >
-          {/* En-tête formulaire */}
+          {/* En-tête formulaire : identité de l'établissement */}
           <Box sx={{ textAlign: 'center', mb: 4 }}>
             <Box
               sx={{
-                bgcolor: '#1976d2',
+                bgcolor: logoSrc ? 'transparent' : '#1976d2',
                 color: 'white',
                 width: 60,
                 height: 60,
@@ -194,16 +197,25 @@ const Login = () => {
                 alignItems: 'center',
                 justifyContent: 'center',
                 margin: '0 auto',
-                mb: 2
+                mb: 2,
+                overflow: 'hidden'
               }}
             >
-              <HealthAndSafety sx={{ fontSize: 40 }} />
+              {logoSrc ? (
+                <img
+                  src={logoSrc}
+                  alt={hospital.name}
+                  style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }}
+                />
+              ) : (
+                <HealthAndSafety sx={{ fontSize: 40 }} />
+              )}
             </Box>
             <Typography variant="h5" component="h1" fontWeight="bold" gutterBottom>
-              CHU Tokoin
+              {hospital.name}
             </Typography>
             <Typography variant="body2" color="textSecondary" sx={{ mb: 1 }}>
-              Système de Gestion des Examens
+              {APP_IDENTITY.description}
             </Typography>
             <Box sx={{ width: 40, height: 3, bgcolor: '#1976d2', margin: '0 auto', borderRadius: 1 }} />
           </Box>

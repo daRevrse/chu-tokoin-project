@@ -26,6 +26,7 @@ const userRoutes = require('./routes/users');
 const serviceAdminRoutes = require('./routes/serviceAdmin');
 const mobileMoneyRoutes = require('./routes/mobileMoney');
 const healthRoutes = require('./routes/health');
+const settingsRoutes = require('./routes/hospitalSettings');
 
 // Import du rate limiter
 const { generalLimiter, authLimiter, paymentLimiter, portalLimiter } = require('./middleware/rateLimiter');
@@ -103,6 +104,7 @@ app.use('/api/portal', portalLimiter, portalRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/admin/services', serviceAdminRoutes);
+app.use('/api/settings', settingsRoutes);
 
 // Middleware de gestion des erreurs
 app.use(notFound);

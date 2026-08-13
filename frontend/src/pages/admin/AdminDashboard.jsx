@@ -35,13 +35,15 @@ import {
   HourglassEmptyRounded as PendingIcon,
   AccountBalanceWalletRounded as WalletIcon,
   MenuBookRounded as CatalogIcon,
-  AccountTreeRounded as ServiceConfigIcon
+  AccountTreeRounded as ServiceConfigIcon,
+  ApartmentRounded as HospitalIdentityIcon
 } from '@mui/icons-material';
 import axios from 'axios';
 import { useAuth } from '../../contexts/AuthContext';
 import UserManagement from './UserManagement';
 import ExamManagement from './ExamManagement';
 import ServiceManagement from './ServiceManagement';
+import HospitalSettings from './HospitalSettings';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
 
@@ -306,6 +308,7 @@ const AdminDashboard = () => {
           <Tab icon={<People />} iconPosition="start" label="Utilisateurs" />
           <Tab icon={<CatalogIcon />} iconPosition="start" label="Catalogue d'examens" />
           <Tab icon={<ServiceConfigIcon />} iconPosition="start" label="Services" />
+          <Tab icon={<HospitalIdentityIcon />} iconPosition="start" label="Établissement" />
         </Tabs>
       </Paper>
 
@@ -548,6 +551,9 @@ const AdminDashboard = () => {
 
       {/* Configuration des services et de leurs circuits */}
       {activeTab === 4 && <ServiceManagement />}
+
+      {/* Identite de l'etablissement (nom, logo, coordonnees) */}
+      {activeTab === 5 && <HospitalSettings />}
     </Container>
   );
 };
