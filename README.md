@@ -1,13 +1,31 @@
-# CHU Tokoin - Systeme de Digitalisation du Parcours Patient
+# H360 - Solution Hospitaliere Intelligente
 
-Systeme de gestion numerique du parcours patient pour le Centre Hospitalier Universitaire de Tokoin (Togo).
+Systeme de gestion numerique du parcours patient, destine aux etablissements
+hospitaliers.
 
 ## Apercu du Projet
 
-Ce systeme digitalise le parcours patient de bout en bout : de son arrivee a
-l'accueil jusqu'a la consultation de ses resultats d'examens, en passant par la
-caisse, la consultation medicale et les services techniques (radiologie,
-laboratoire et autres services d'examens).
+H360 digitalise le parcours patient de bout en bout : de son arrivee a l'accueil
+jusqu'a la consultation de ses resultats d'examens, en passant par la caisse, la
+consultation medicale, les services techniques (radiologie, laboratoire et autres
+services d'examens) et le service d'accueil des urgences.
+
+### Identite du produit et identite de l'etablissement
+
+Deux notions distinctes, a ne pas confondre en lisant le code :
+
+- **H360** est le produit. Son nom, sa signature et son editeur sont les memes
+  chez tous les clients : ils sont figes dans `backend/utils/appIdentity.js` et
+  `frontend/src/config/appIdentity.js`, et ne sont pas administrables.
+- **L'etablissement** qui exploite l'application est parametrable. Nom, raison
+  sociale, logo, coordonnees et mentions de pied de page se reglent depuis
+  **Administration > Etablissement** et sont imprimes sur les tickets, recus,
+  ordonnances et rapports.
+
+Le logiciel n'est donc lie a aucun hopital en particulier. Les jeux de donnees de
+demonstration livres dans `backend/seeds/` portent des noms et des adresses
+d'exemple : ils servent a faire tourner l'application avant parametrage, et n'ont
+pas vocation a etre conserves en production.
 
 ### Workflow Principal
 
@@ -81,7 +99,7 @@ le circuit fonctionne sans passage prealable a la caisse.
 ## Structure du Projet
 
 ```
-chu-tokoin-system/
+h360/
 ├── backend/
 │   ├── config/          # Configuration DB, JWT, serveur
 │   ├── controllers/     # Logique metier
@@ -209,6 +227,18 @@ Aucun tarif de consultation n'est livre : les montants relevent de chaque
 etablissement et se saisissent dans **Administration > Specialites et tarifs**.
 Tant que la grille est vide, aucune consultation n'est facturee.
 
+### Premier parametrage
+
+Apres le seed, trois reglages sont a faire avant toute utilisation reelle :
+
+1. **Administration > Etablissement** — nom, logo et coordonnees de l'hopital.
+   Les valeurs livrees sont des exemples et apparaissent sur tous les documents
+   imprimes.
+2. **Administration > Specialites et tarifs** — grille des frais de consultation
+   et forfait d'admission aux urgences.
+3. **Administration > Utilisateurs** — creation des comptes reels et
+   desactivation des comptes de demonstration.
+
 ### Frontend
 ```bash
 cd frontend
@@ -228,7 +258,11 @@ npm start
 - [PHASE_6_FACTURATION.md](./PHASE_6_FACTURATION.md) - Facturation et frais de consultation
 - [PHASE_7_URGENCES.md](./PHASE_7_URGENCES.md) - Service d'accueil des urgences
 
-## Comptes de Test (apres seed)
+## Comptes de Demonstration (apres seed)
+
+Comptes de test livres par `npm run seed`, mots de passe compris. Ils sont
+destines au developpement et a la recette : **a desactiver avant toute mise en
+service**.
 
 | Role | Email | Mot de passe |
 |------|-------|--------------|
@@ -299,10 +333,24 @@ npm start
 - `POST /api/results` - Upload resultat
 - `GET /api/results/:id/download` - Telecharger resultat
 
+## Traces de l'etablissement pilote
+
+Le projet a demarre pour un etablissement donne et en garde des traces, restees
+en place pour ne pas invalider les donnees existantes. Elles sont sans effet sur
+le fonctionnement, mais a traiter avant une diffusion plus large :
+
+| Emplacement | Trace | Pourquoi elle n'a pas ete changee |
+|---|---|---|
+| `backend/services/qrcodeService.js` | `type: 'CHU_TOKOIN_PAYMENT'` dans la charge utile des QR codes | Les QR deja remis aux patients portent cette valeur ; la changer les rendrait illisibles par les services |
+| `backend/utils/logger.js` | `service: 'chu-tokoin-api'` | Etiquette de journalisation, potentiellement utilisee par une collecte de logs existante |
+| `backend/services/mobileMoneyService.js` | Prefixe `CHU-` des references de transaction | Reference transmise a l'operateur, rapprochee des transactions passees |
+| `backend/seeds/`, `backend/database/init.sql`, `.env.example` | Noms, adresses et base `chu_tokoin` | Jeux de demonstration et parametres locaux |
+| `backend/package.json` | `name: chu-tokoin-backend` | Renommage sans effet fonctionnel, a grouper avec les precedents |
+
 ## Licence
 
-Projet developpe pour le CHU Tokoin, Lome, Togo.
+Application proprietaire. Tous droits reserves.
 
 ## Contact
 
-Pour toute question concernant ce projet, contactez l'equipe technique du CHU Tokoin.
+Pour toute question, contactez l'equipe technique en charge du deploiement.
