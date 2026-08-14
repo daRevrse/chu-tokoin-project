@@ -66,3 +66,8 @@ temp/
 
 # Optional REPL history
 .node_repl_history
+
+# Outillage local Claude Code : configuration de poste et worktrees temporaires.
+# `worktrees/` etait suivi sous forme de gitlinks pointant vers des depots
+# absents, ce qui faisait echouer la resolution des sous-modules au clonage.
+.claude/
