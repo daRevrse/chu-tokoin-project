@@ -39,6 +39,12 @@ const createValidation = [
     .optional()
     .isIn(['CONSULTATION', 'RESULT_REVIEW'])
     .withMessage('Type de passage invalide'),
+  // L'existence et l'activation de la specialite sont verifiees dans le
+  // controleur : elles dependent de la base.
+  body('specialtyId')
+    .optional({ values: 'null' })
+    .isUUID()
+    .withMessage('Specialite invalide'),
   // La coherence avec `visitType` et l'etat des resultats est verifiee dans le
   // controleur : elle depend d'autres champs et de la base.
   body('reviewedPrescriptionId')

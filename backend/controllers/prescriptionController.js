@@ -1,10 +1,12 @@
 const fs = require('fs');
 const path = require('path');
-const { Prescription, PrescriptionExam, Patient, Exam, User, Payment, Service, Visit } = require('../models');
+const { Prescription, PrescriptionExam, Patient, Exam, User, Payment, Service, Visit, Invoice } = require('../models');
 const { validationResult } = require('express-validator');
 const { Op } = require('sequelize');
 const logger = require('../utils/logger');
 const { getHospitalSettings, getDocumentHeaderLines } = require('../services/hospitalSettingsService');
+const { ensureExamInvoice } = require('../services/examBillingService');
+const { cancelInvoice } = require('../services/invoiceService');
 
 /**
  * Chemin disque du logo, s'il est imprimable par PDFKit (PNG et JPEG
@@ -115,6 +117,11 @@ const prescriptionController = {
 
       await PrescriptionExam.bulkCreate(prescriptionExams);
 
+      // La facture est emise ici, ou nait la creance, et non au guichet : la
+      // caisse n'a ainsi qu'un seul objet a traiter, la facture, qu'elle porte
+      // une consultation ou des examens.
+      const invoice = await ensureExamInvoice(prescription.id, { issuedBy: req.user.id });
+
       // Recuperer la prescription complete avec les relations
       const fullPrescription = await Prescription.findByPk(prescription.id, {
         include: [
@@ -135,12 +142,14 @@ const prescriptionController = {
       logger.info('Prescription creee', {
         prescriptionId: prescription.id,
         prescriptionNumber: prescription.prescriptionNumber,
-        doctorId: req.user.id
+        doctorId: req.user.id,
+        invoiceNumber: invoice ? invoice.invoiceNumber : null
       });
 
       res.status(201).json({
         message: 'Prescription creee avec succes',
-        prescription: fullPrescription
+        prescription: fullPrescription,
+        invoice
       });
     } catch (error) {
       logger.error('Create prescription error:', error);
@@ -337,6 +346,24 @@ const prescriptionController = {
         { status: 'PENDING' },
         { where: { prescriptionId: prescription.id } }
       );
+
+      // La facture suit la prescription : la laisser ouverte ferait apparaitre
+      // indefiniment a la caisse une creance sans objet. Seules les prescriptions
+      // PENDING arrivent ici, donc aucun encaissement n'a eu lieu.
+      const invoice = await Invoice.findOne({
+        where: {
+          prescriptionId: prescription.id,
+          invoiceType: 'EXAM',
+          status: { [Op.ne]: 'CANCELLED' }
+        }
+      });
+
+      if (invoice) {
+        await cancelInvoice(invoice.id, {
+          reason: `Prescription ${prescription.prescriptionNumber} annulee`,
+          userId: req.user.id
+        });
+      }
 
       logger.info('Prescription annulee', { prescriptionId: prescription.id });
 

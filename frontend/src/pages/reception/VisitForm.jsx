@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Paper,
@@ -33,9 +33,13 @@ const VITALS = [
   { name: 'pulseBpm', label: 'Pouls', unit: 'bpm', min: 20, max: 250, step: 1 }
 ];
 
+const formatAmount = (amount) =>
+  new Intl.NumberFormat('fr-FR').format(Number(amount) || 0) + ' FCFA';
+
 const EMPTY_FORM = {
   reason: '',
   priority: 'NORMAL',
+  specialtyId: '',
   weightKg: '',
   heightCm: '',
   temperatureC: '',
@@ -56,6 +60,42 @@ const VisitForm = ({ patient, onBack, onSuccess }) => {
   // Passage deja ouvert aujourd'hui : on demande confirmation avant d'en
   // ouvrir un second (retour dans la journee pour un autre motif).
   const [duplicateVisit, setDuplicateVisit] = useState(null);
+  const [specialties, setSpecialties] = useState([]);
+  const [tariffs, setTariffs] = useState([]);
+
+  useEffect(() => {
+    // Les deux listes ensemble : l'orientation et son tarif sont annonces au
+    // patient dans le meme geste, il n'y a pas de raison de les charger a des
+    // moments differents.
+    const load = async () => {
+      try {
+        const [specialtyRes, tariffRes] = await Promise.all([
+          api.get('/specialties?active=true'),
+          api.get('/specialties/tariffs')
+        ]);
+        setSpecialties(specialtyRes.data.specialties || []);
+        setTariffs((tariffRes.data.tariffs || []).filter(t => t.isActive));
+      } catch (err) {
+        // Une grille indisponible ne doit pas empecher d'enregistrer un patient :
+        // le serveur facturera de toute facon, l'accueil perd seulement
+        // l'affichage du montant.
+        console.error('Erreur chargement specialites:', err);
+      }
+    };
+    load();
+  }, []);
+
+  // Meme resolution que le serveur (services/consultationFeeService.js) : tarif
+  // propre a la specialite, puis tarif par defaut. L'accueil doit annoncer le
+  // montant que la caisse reclamera, pas une approximation.
+  const resolveTariff = () => {
+    const visitType = 'CONSULTATION';
+    return tariffs.find(t => t.specialtyId === formData.specialtyId && t.visitType === visitType)
+      || tariffs.find(t => !t.specialtyId && t.visitType === visitType)
+      || null;
+  };
+
+  const tariff = resolveTariff();
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -105,7 +145,7 @@ const VisitForm = ({ patient, onBack, onSuccess }) => {
 
     try {
       const response = await api.post('/visits', payload);
-      onSuccess(response.data.visit);
+      onSuccess(response.data.visit, response.data.consultationInvoice);
     } catch (err) {
       if (err.response?.status === 409 && err.response.data?.visit) {
         setDuplicateVisit(err.response.data.visit);
@@ -172,6 +212,41 @@ const VisitForm = ({ patient, onBack, onSuccess }) => {
               placeholder="Ex. fièvre depuis 3 jours, contrôle post-opératoire..."
               sx={inputStyle}
             />
+          </Grid>
+
+          <Grid size={{ xs: 12, sm: 6 }}>
+            <FormControl fullWidth sx={inputStyle}>
+              <InputLabel>Spécialité</InputLabel>
+              <Select
+                name="specialtyId"
+                value={formData.specialtyId}
+                label="Spécialité"
+                onChange={handleChange}
+                sx={{ borderRadius: 2 }}
+              >
+                <MenuItem value="">
+                  <em>Non orienté</em>
+                </MenuItem>
+                {specialties.map((specialty) => (
+                  <MenuItem key={specialty.id} value={specialty.id}>
+                    {specialty.name}
+                    {specialty.doctorCount === 0 && ' (aucun médecin)'}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Grid>
+
+          <Grid size={{ xs: 12, sm: 6 }} sx={{ display: 'flex', alignItems: 'center' }}>
+            {tariff ? (
+              <Alert severity="info" sx={{ borderRadius: 2, width: '100%', py: 0 }}>
+                Frais de consultation : <strong>{formatAmount(tariff.amount)}</strong> — à régler à la caisse
+              </Alert>
+            ) : (
+              <Alert severity="success" sx={{ borderRadius: 2, width: '100%', py: 0 }}>
+                Aucun frais de consultation
+              </Alert>
+            )}
           </Grid>
 
           <Grid size={{ xs: 12, sm: 6 }}>

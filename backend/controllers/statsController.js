@@ -1,4 +1,4 @@
-const { PrescriptionExam, Exam, User, Payment, Prescription, Patient, Result, Visit } = require('../models');
+const { PrescriptionExam, Exam, User, Payment, Prescription, Patient, Result, Visit, EmergencyCase } = require('../models');
 const { Op } = require('sequelize');
 const sequelize = require('../config/database');
 const { getBusinessDate } = require('../utils/businessDate');
@@ -210,6 +210,14 @@ const statsController = {
       if (role === 'RECEPTIONIST' || isAdmin) {
         badges.reception = await Visit.count({
           where: { visitDate: getBusinessDate(), status: 'WAITING' }
+        });
+      }
+
+      if (['NURSE', 'DOCTOR'].includes(role) || isAdmin) {
+        // Dossiers encore dans le service, toutes dates d'arrivee confondues :
+        // un patient arrive avant minuit est toujours la apres.
+        badges.emergency = await EmergencyCase.count({
+          where: { status: { [Op.in]: ['AWAITING_TRIAGE', 'WAITING', 'IN_CARE'] } }
         });
       }
 

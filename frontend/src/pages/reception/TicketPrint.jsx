@@ -19,13 +19,16 @@ import { useHospital } from '../../contexts/HospitalContext';
  * L'impression passe par `window.print()` : la feuille de style @media print
  * masque tout sauf le ticket, ce qui evite d'imprimer la navigation.
  */
-const TicketPrint = ({ visit, onNext }) => {
+const TicketPrint = ({ visit, consultationInvoice = null, onNext }) => {
   const { hospital, logoSrc } = useHospital();
 
   if (!visit) return null;
 
   const patient = visit.patient || {};
   const isUrgent = visit.priority === 'URGENT';
+  const amountDue = consultationInvoice
+    ? Number(consultationInvoice.totalAmount) - Number(consultationInvoice.paidAmount)
+    : 0;
 
   const formattedDate = new Date(visit.createdAt).toLocaleString('fr-FR', {
     dateStyle: 'long',
@@ -106,6 +109,12 @@ const TicketPrint = ({ visit, onNext }) => {
           {patient.patientNumber}
         </Typography>
 
+        {visit.specialty && (
+          <Typography variant="body2" sx={{ mb: 2 }}>
+            <strong>Spécialité :</strong> {visit.specialty.name}
+          </Typography>
+        )}
+
         {visit.reviewedPrescription ? (
           <Typography variant="body2" sx={{ mb: 2 }}>
             <strong>Ordonnance :</strong> {visit.reviewedPrescription.prescriptionNumber}
@@ -114,6 +123,30 @@ const TicketPrint = ({ visit, onNext }) => {
           <Typography variant="body2" sx={{ mb: 2 }}>
             <strong>Motif :</strong> {visit.reason}
           </Typography>
+        )}
+
+        {/* Le montant du est imprime sur le ticket : c'est le seul papier que le
+            patient emporte a la caisse. */}
+        {amountDue > 0 && (
+          <Box
+            sx={{
+              my: 2,
+              py: 1.5,
+              borderTop: '1px solid',
+              borderBottom: '1px solid',
+              borderColor: 'divider'
+            }}
+          >
+            <Typography variant="body2" color="text.secondary">
+              Frais de consultation
+            </Typography>
+            <Typography variant="h5" fontWeight="bold">
+              {new Intl.NumberFormat('fr-FR').format(amountDue)} FCFA
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              À régler à la caisse avant la consultation
+            </Typography>
+          </Box>
         )}
 
         <Typography variant="caption" color="text.secondary" display="block">

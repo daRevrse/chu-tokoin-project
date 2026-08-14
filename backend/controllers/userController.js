@@ -1,5 +1,5 @@
 const { Op } = require('sequelize');
-const { User, Service } = require('../models');
+const { User, Service, Specialty } = require('../models');
 const { validationResult } = require('express-validator');
 const logger = require('../utils/logger');
 
@@ -36,6 +36,32 @@ const resolveServiceId = async (role, serviceId) => {
   }
 
   return { value: service.id };
+};
+
+/**
+ * Valide la specialite en fonction du role.
+ *
+ * Seul un medecin en porte une, et elle reste facultative : un etablissement qui
+ * n'a pas encore declare ses specialites doit continuer a creer des comptes
+ * medecin. Un medecin sans specialite consulte dans la file non orientee.
+ *
+ * @returns {Promise<{ value?: string|null, error?: string }>}
+ */
+const resolveSpecialtyId = async (role, specialtyId) => {
+  if (role !== 'DOCTOR') {
+    // Changer de role libere la specialite : un ancien medecin devenu
+    // administrateur ne doit plus apparaitre dans une file de consultation.
+    return { value: null };
+  }
+
+  if (!specialtyId) return { value: null };
+
+  const specialty = await Specialty.findByPk(specialtyId);
+  if (!specialty) {
+    return { error: 'Specialite introuvable' };
+  }
+
+  return { value: specialty.id };
 };
 
 /**
@@ -83,7 +109,10 @@ const userController = {
         where,
         // Le service d'affectation est affiche dans la liste d'administration
         // et conditionne le perimetre du personnel technique.
-        include: [{ model: Service, as: 'service', attributes: ['id', 'code', 'name', 'color'] }],
+        include: [
+          { model: Service, as: 'service', attributes: ['id', 'code', 'name', 'color'] },
+          { model: Specialty, as: 'specialty', attributes: ['id', 'code', 'name', 'color'] }
+        ],
         order: [['role', 'ASC'], ['lastName', 'ASC'], ['firstName', 'ASC']]
       });
 
@@ -165,7 +194,7 @@ const userController = {
         return res.status(400).json({ errors: errors.array() });
       }
 
-      const { email, password, firstName, lastName, role, phone, serviceId } = req.body;
+      const { email, password, firstName, lastName, role, phone, serviceId, specialtyId } = req.body;
 
       const existing = await User.findOne({ where: { email } });
       if (existing) {
@@ -179,6 +208,11 @@ const userController = {
         return res.status(400).json({ error: resolvedService.error });
       }
 
+      const resolvedSpecialty = await resolveSpecialtyId(role, specialtyId);
+      if (resolvedSpecialty.error) {
+        return res.status(400).json({ error: resolvedSpecialty.error });
+      }
+
       // Le hachage du mot de passe est assure par le hook beforeCreate du modele
       const user = await User.create({
         email,
@@ -187,7 +221,8 @@ const userController = {
         lastName,
         role,
         phone: phone || null,
-        serviceId: resolvedService.value
+        serviceId: resolvedService.value,
+        specialtyId: resolvedSpecialty.value
       });
 
       logger.info('Utilisateur cree', {
@@ -224,7 +259,7 @@ const userController = {
         return res.status(404).json({ error: 'Utilisateur non trouve' });
       }
 
-      const { email, firstName, lastName, role, phone, serviceId } = req.body;
+      const { email, firstName, lastName, role, phone, serviceId, specialtyId } = req.body;
 
       // L'email doit rester unique
       if (email && email !== user.email) {
@@ -265,13 +300,22 @@ const userController = {
         return res.status(400).json({ error: resolvedService.error });
       }
 
+      const resolvedSpecialty = specialtyId !== undefined || role
+        ? await resolveSpecialtyId(finalRole, specialtyId !== undefined ? specialtyId : user.specialtyId)
+        : { value: user.specialtyId };
+
+      if (resolvedSpecialty.error) {
+        return res.status(400).json({ error: resolvedSpecialty.error });
+      }
+
       await user.update({
         email: email || user.email,
         firstName: firstName || user.firstName,
         lastName: lastName || user.lastName,
         role: finalRole,
         phone: phone !== undefined ? phone : user.phone,
-        serviceId: resolvedService.value
+        serviceId: resolvedService.value,
+        specialtyId: resolvedSpecialty.value
       });
 
       logger.info('Utilisateur mis a jour', {

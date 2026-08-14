@@ -61,6 +61,17 @@ const Visit = sequelize.define('Visit', {
       key: 'id'
     }
   },
+  // Specialite vers laquelle l'accueil oriente le patient. Nullable : les
+  // passages anterieurs aux specialites n'en ont pas, et un etablissement qui
+  // n'en declare aucune continue de fonctionner avec une file unique.
+  specialtyId: {
+    type: DataTypes.UUID,
+    allowNull: true,
+    references: {
+      model: 'specialties',
+      key: 'id'
+    }
+  },
   priority: {
     type: DataTypes.ENUM('NORMAL', 'URGENT'),
     defaultValue: 'NORMAL'
@@ -139,6 +150,7 @@ const Visit = sequelize.define('Visit', {
   indexes: [
     { unique: true, fields: ['visitDate', 'ticketNumber'], name: 'visits_date_ticket' },
     { fields: ['visitDate', 'status'], name: 'visits_date_status' },
+    { fields: ['visitDate', 'specialtyId'], name: 'visits_date_specialty' },
     { fields: ['patientId'], name: 'visits_patient' }
   ]
 });

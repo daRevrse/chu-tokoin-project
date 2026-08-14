@@ -53,6 +53,9 @@ const ReceptionDashboard = () => {
   const [step, setStep] = useState(STEP_LOOKUP);
   const [selectedPatient, setSelectedPatient] = useState(null);
   const [lastVisit, setLastVisit] = useState(null);
+  // Facture des frais de consultation, jointe au ticket : le patient doit
+  // repartir de l'accueil en sachant ce qu'il doit et ou le regler.
+  const [lastInvoice, setLastInvoice] = useState(null);
   const [stats, setStats] = useState(EMPTY_STATS);
 
   const fetchStats = useCallback(async () => {
@@ -78,6 +81,7 @@ const ReceptionDashboard = () => {
     setStep(STEP_LOOKUP);
     setSelectedPatient(null);
     setLastVisit(null);
+    setLastInvoice(null);
   };
 
   const handleOpenVisit = (patient) => {
@@ -92,8 +96,9 @@ const ReceptionDashboard = () => {
     setStep(STEP_VISIT);
   };
 
-  const handleVisitCreated = (visit) => {
+  const handleVisitCreated = (visit, consultationInvoice = null) => {
     setLastVisit(visit);
+    setLastInvoice(consultationInvoice);
     setStep(STEP_TICKET);
     fetchStats();
   };
@@ -157,7 +162,7 @@ const ReceptionDashboard = () => {
   if (step === STEP_TICKET && lastVisit) {
     return (
       <Container maxWidth="xl" sx={{ py: 3 }}>
-        <TicketPrint visit={lastVisit} onNext={backToLookup} />
+        <TicketPrint visit={lastVisit} consultationInvoice={lastInvoice} onNext={backToLookup} />
       </Container>
     );
   }

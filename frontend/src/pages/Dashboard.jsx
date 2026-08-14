@@ -16,7 +16,8 @@ import {
   AdminPanelSettingsRounded,
   BiotechRounded,
   SupportAgentRounded,
-  MedicalInformationRounded
+  MedicalInformationRounded,
+  EmergencyRounded
 } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -32,6 +33,13 @@ const Dashboard = () => {
       icon: <SupportAgentRounded sx={{ fontSize: 40, color: '#7b1fa2' }} />,
       path: '/reception',
       bgColor: '#f3e5f5'
+    },
+    NURSE: {
+      title: 'Urgences',
+      description: 'Admettre, trier et suivre les patients du service d\'urgences',
+      icon: <EmergencyRounded sx={{ fontSize: 40, color: '#d32f2f' }} />,
+      path: '/emergency',
+      bgColor: '#ffebee'
     },
     DOCTOR: {
       title: 'Espace Médecin',

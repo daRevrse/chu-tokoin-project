@@ -131,7 +131,25 @@
       "Bash(curl -s -m 5 -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:5000/api/health)",
       "Bash(curl -s -m 5 -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:3000)",
       "Bash(curl -s -m 5 http://localhost:5000/api/settings/hospital)",
-      "Bash(node -e \"let d='';process.stdin.on\\('data',c=>d+=c\\).on\\('end',\\(\\)=>{const j=JSON.parse\\(d\\);console.log\\(j.hospital.name,'/',j.app.name\\)}\\)\")"
+      "Bash(node -e \"let d='';process.stdin.on\\('data',c=>d+=c\\).on\\('end',\\(\\)=>{const j=JSON.parse\\(d\\);console.log\\(j.hospital.name,'/',j.app.name\\)}\\)\")",
+      "Bash(grep -E \"\\\\.env$\")",
+      "Bash(git push *)",
+      "Bash(timeout 60 node server.js)",
+      "Bash(timeout 90 node server.js)",
+      "Bash(timeout 120 node server.js)",
+      "Bash(node e2e.js)",
+      "Bash(CI=true npx --no-install eslint --ext .js,.jsx src/pages/reception src/pages/cashier src/pages/doctor src/pages/admin src/hooks)",
+      "Bash(node seeds/specialties.js)",
+      "Bash(python -c ' *)",
+      "Bash(npx --no-install eslint --ext .js,.jsx src/pages/cashier src/pages/admin src/components/cashier)",
+      "Bash(node e2e-lotA.js)",
+      "Bash(npx --no-install eslint --ext .js,.jsx src/pages/emergency src/App.js src/pages/Dashboard.jsx src/components/layout/MainLayout.jsx src/pages/Login.jsx)",
+      "Bash(node seeds/initialData.js)",
+      "Bash(DB_NAME=chu_tokoin_seedtest node seeds/initialData.js)",
+      "Bash(node e2e-urgences.js)",
+      "Bash(grep -iE \"^Emergency\\(Rounded|Share|Heat\\)?\\\\.js$\")",
+      "Bash(grep -iE \"^\\(LocalHospitalRounded|MedicalServicesRounded|EmergencyShareRounded\\)\\\\.js$\")",
+      "Bash(git config *)"
     ]
   }
 }

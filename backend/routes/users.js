@@ -31,7 +31,12 @@ const createValidation = [
   body('serviceId')
     .optional({ values: 'null' })
     .isUUID()
-    .withMessage('Service invalide')
+    .withMessage('Service invalide'),
+  // Coherence role/specialite verifiee dans le controleur (resolveSpecialtyId).
+  body('specialtyId')
+    .optional({ values: 'null' })
+    .isUUID()
+    .withMessage('Specialite invalide')
 ];
 
 const updateValidation = [
@@ -57,7 +62,12 @@ const updateValidation = [
   body('serviceId')
     .optional({ values: 'null' })
     .isUUID()
-    .withMessage('Service invalide')
+    .withMessage('Service invalide'),
+  // Coherence role/specialite verifiee dans le controleur (resolveSpecialtyId).
+  body('specialtyId')
+    .optional({ values: 'null' })
+    .isUUID()
+    .withMessage('Specialite invalide')
 ];
 
 const resetPasswordValidation = [

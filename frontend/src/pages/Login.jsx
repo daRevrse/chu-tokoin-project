@@ -50,6 +50,8 @@ const Login = () => {
     switch (role) {
       case 'RECEPTIONIST':
         return '/reception';
+      case 'NURSE':
+        return '/emergency';
       case 'DOCTOR':
         return '/doctor';
       case 'CASHIER':

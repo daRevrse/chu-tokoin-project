@@ -27,6 +27,7 @@ import {
   ScienceRounded,
   AdminPanelSettingsRounded,
   SupportAgentRounded,
+  EmergencyRounded,
   LogoutRounded,
   NotificationsNoneRounded,
   AccountCircleRounded
@@ -114,7 +115,8 @@ const MainLayout = ({ children }) => {
       RADIOLOGIST: 'Radiologue',
       LAB_TECHNICIAN: 'Laborantin',
       TECHNICIAN: 'Technicien',
-      RECEPTIONIST: 'Accueil'
+      RECEPTIONIST: 'Accueil',
+      NURSE: 'Infirmier'
     };
     return labels[role] || role;
   };
@@ -127,7 +129,8 @@ const MainLayout = ({ children }) => {
       RADIOLOGIST: 'info',
       LAB_TECHNICIAN: 'warning',
       TECHNICIAN: 'info',
-      RECEPTIONIST: 'secondary'
+      RECEPTIONIST: 'secondary',
+      NURSE: 'error'
     };
     return colors[role] || 'default';
   };
@@ -140,6 +143,11 @@ const MainLayout = ({ children }) => {
     // L'accueil ouvre le circuit : son entree precede celle du medecin.
     if (user?.role === 'RECEPTIONIST' || user?.role === 'ADMIN') {
       baseItems.push({ text: 'Espace Accueil', icon: <SupportAgentRounded />, path: '/reception', badge: badges.reception });
+    }
+    // Les urgences precedent tout le reste dans le menu du personnel concerne :
+    // c'est le seul ecran ou un retard se compte en vies.
+    if (['NURSE', 'DOCTOR', 'ADMIN'].includes(user?.role)) {
+      baseItems.push({ text: 'Urgences', icon: <EmergencyRounded />, path: '/emergency', badge: badges.emergency });
     }
     if (user?.role === 'DOCTOR' || user?.role === 'ADMIN') {
       baseItems.push({ text: 'Espace Médecin', icon: <MedicalServicesRounded />, path: '/doctor', badge: badges.doctor });

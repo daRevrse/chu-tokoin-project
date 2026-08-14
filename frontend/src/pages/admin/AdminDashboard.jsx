@@ -36,13 +36,17 @@ import {
   AccountBalanceWalletRounded as WalletIcon,
   MenuBookRounded as CatalogIcon,
   AccountTreeRounded as ServiceConfigIcon,
-  ApartmentRounded as HospitalIdentityIcon
+  ApartmentRounded as HospitalIdentityIcon,
+  MedicalInformationRounded as SpecialtyIcon,
+  RunningWithErrorsRounded as OutstandingIcon
 } from '@mui/icons-material';
 import axios from 'axios';
 import { useAuth } from '../../contexts/AuthContext';
 import UserManagement from './UserManagement';
 import ExamManagement from './ExamManagement';
 import ServiceManagement from './ServiceManagement';
+import SpecialtyManagement from './SpecialtyManagement';
+import OutstandingInvoices from '../cashier/OutstandingInvoices';
 import HospitalSettings from './HospitalSettings';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
@@ -304,10 +308,12 @@ const AdminDashboard = () => {
           }}
         >
           <Tab icon={<Assessment />} iconPosition="start" label="Rapport Financier" />
+          <Tab icon={<OutstandingIcon />} iconPosition="start" label="Créances et dérogations" />
           <Tab icon={<LocalHospital />} iconPosition="start" label="Activité Services" />
           <Tab icon={<People />} iconPosition="start" label="Utilisateurs" />
           <Tab icon={<CatalogIcon />} iconPosition="start" label="Catalogue d'examens" />
           <Tab icon={<ServiceConfigIcon />} iconPosition="start" label="Services" />
+          <Tab icon={<SpecialtyIcon />} iconPosition="start" label="Spécialités et tarifs" />
           <Tab icon={<HospitalIdentityIcon />} iconPosition="start" label="Établissement" />
         </Tabs>
       </Paper>
@@ -419,7 +425,21 @@ const AdminDashboard = () => {
       )}
 
       {/* Rapport d'Activite */}
+      {/* Prises en charge accordees sans reglement : un contournement que
+          personne ne regarde devient la norme en trois semaines. En lecture
+          seule ici, l'encaissement se fait a la caisse. */}
       {activeTab === 1 && (
+        <Paper elevation={0} sx={{ p: 4, borderRadius: 4, boxShadow: '0 4px 20px rgba(0,0,0,0.03)' }}>
+          <OutstandingInvoices
+            canCollect={false}
+            defaultFilter="DEFERRED"
+            title="Soins délivrés sans règlement"
+            subtitle="Prises en charge accordées avant paiement (urgences et dérogations), et créances encore ouvertes."
+          />
+        </Paper>
+      )}
+
+      {activeTab === 2 && (
         <Paper elevation={0} sx={{ p: { xs: 3, md: 4 }, borderRadius: 4, boxShadow: '0 4px 20px rgba(0,0,0,0.03)' }}>
           <Box sx={{ display: 'flex', gap: 2, mb: 4, flexWrap: 'wrap', alignItems: 'center' }}>
             <FormControl size="small" sx={{ minWidth: 160 }}>
@@ -544,16 +564,19 @@ const AdminDashboard = () => {
       )}
 
       {/* Gestion des utilisateurs */}
-      {activeTab === 2 && <UserManagement />}
+      {activeTab === 3 && <UserManagement />}
 
       {/* Gestion du catalogue d'examens */}
-      {activeTab === 3 && <ExamManagement />}
+      {activeTab === 4 && <ExamManagement />}
 
       {/* Configuration des services et de leurs circuits */}
-      {activeTab === 4 && <ServiceManagement />}
+      {activeTab === 5 && <ServiceManagement />}
+
+      {/* Specialites cliniques et frais de consultation */}
+      {activeTab === 6 && <SpecialtyManagement />}
 
       {/* Identite de l'etablissement (nom, logo, coordonnees) */}
-      {activeTab === 5 && <HospitalSettings />}
+      {activeTab === 7 && <HospitalSettings />}
     </Container>
   );
 };

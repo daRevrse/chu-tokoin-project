@@ -65,6 +65,19 @@ const User = sequelize.define('User', {
     type: DataTypes.UUID,
     allowNull: true
   },
+  // Specialite dans laquelle le medecin consulte. Ne concerne que le role
+  // DOCTOR ; distincte de `serviceId`, qui designe un service executant des
+  // examens (voir models/Specialty.js).
+  //
+  // Un seul rattachement, pas une liste : un medecin qui consulte dans deux
+  // disciplines existe, mais il tient deux vacations distinctes, et le jour ou
+  // ce cas se presentera il faudra de toute facon modeliser la vacation. Une
+  // relation N-N posee d'avance compliquerait la file d'attente sans repondre a
+  // la vraie question.
+  specialtyId: {
+    type: DataTypes.UUID,
+    allowNull: true
+  },
   phone: {
     type: DataTypes.STRING(20),
     allowNull: true

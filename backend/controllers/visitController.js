@@ -1,8 +1,13 @@
-const { sequelize, Visit, Patient, User, Prescription, PrescriptionExam, Exam } = require('../models');
+const { sequelize, Visit, Patient, User, Prescription, PrescriptionExam, Exam, Specialty, Invoice, InvoiceLine } = require('../models');
 const { validationResult } = require('express-validator');
 const { Op } = require('sequelize');
 const { reserveTicketNumber } = require('../services/ticketService');
 const { getReadiness } = require('../services/resultReadinessService');
+const {
+  issueConsultationInvoice,
+  getConsultationInvoice
+} = require('../services/consultationFeeService');
+const { deferInvoice } = require('../services/invoiceService');
 const { getBusinessDate, isBusinessDate } = require('../utils/businessDate');
 const logger = require('../utils/logger');
 
@@ -42,6 +47,27 @@ const reviewedPrescriptionInclude = {
   attributes: ['id', 'prescriptionNumber', 'status', 'prescriptionDate']
 };
 
+const specialtyInclude = {
+  model: Specialty,
+  as: 'specialty',
+  attributes: ['id', 'code', 'name', 'color']
+};
+
+// Facture des frais de consultation, jointe a la file : sans elle, l'accueil et
+// le medecin ne peuvent pas distinguer un patient qui attend d'etre appele d'un
+// patient qui n'est pas encore passe a la caisse.
+//
+// `required: false` est indispensable : avec un `where` sur une association
+// hasMany, Sequelize passe en jointure interne et fait disparaitre de la file
+// tous les passages non factures.
+const consultationInvoiceInclude = {
+  model: Invoice,
+  as: 'invoices',
+  required: false,
+  where: { invoiceType: 'CONSULTATION', status: { [Op.ne]: 'CANCELLED' } },
+  attributes: ['id', 'invoiceNumber', 'status', 'totalAmount', 'paidAmount', 'isDeferred']
+};
+
 const pickVitals = (body) => VITALS_FIELDS.reduce((acc, field) => {
   if (body[field] !== undefined && body[field] !== '') {
     acc[field] = body[field];
@@ -68,12 +94,28 @@ const visitController = {
         notes,
         force,
         visitType = 'CONSULTATION',
-        reviewedPrescriptionId
+        reviewedPrescriptionId,
+        specialtyId = null
       } = req.body;
 
       const patient = await Patient.findByPk(patientId);
       if (!patient) {
         return res.status(404).json({ error: 'Patient non trouve' });
+      }
+
+      // L'orientation determine la file d'attente et le tarif : une specialite
+      // fermee ne doit pas recevoir de patient qu'aucun medecin ne viendra voir.
+      let specialty = null;
+      if (specialtyId) {
+        specialty = await Specialty.findByPk(specialtyId);
+
+        if (!specialty) {
+          return res.status(404).json({ error: 'Specialite non trouvee' });
+        }
+
+        if (!specialty.isActive) {
+          return res.status(400).json({ error: `La specialite ${specialty.name} est desactivee` });
+        }
       }
 
       // Retour du patient pour ses resultats : la prescription doit exister,
@@ -129,23 +171,38 @@ const visitController = {
       // creation, il est perdu plutot que reattribue (voir ticketService).
       const ticketNumber = await reserveTicketNumber(visitDate);
 
-      const visit = await Visit.create({
-        patientId,
-        ticketNumber,
-        visitDate,
-        priority,
-        reason,
-        notes,
-        visitType,
-        reviewedPrescriptionId: visitType === 'RESULT_REVIEW' ? reviewedPrescriptionId : null,
-        registeredBy: req.user.id,
-        ...pickVitals(req.body)
+      // Le passage et sa facture sont ecrits ensemble : un passage sans facture
+      // serait une consultation gratuite que personne n'a decidee, et une
+      // facture sans passage une creance sans objet.
+      const { visit, invoice } = await sequelize.transaction(async (transaction) => {
+        const created = await Visit.create({
+          patientId,
+          ticketNumber,
+          visitDate,
+          specialtyId: specialty ? specialty.id : null,
+          priority,
+          reason,
+          notes,
+          visitType,
+          reviewedPrescriptionId: visitType === 'RESULT_REVIEW' ? reviewedPrescriptionId : null,
+          registeredBy: req.user.id,
+          ...pickVitals(req.body)
+        }, { transaction });
+
+        const consultationInvoice = await issueConsultationInvoice(created, {
+          issuedBy: req.user.id,
+          specialty,
+          transaction
+        });
+
+        return { visit: created, invoice: consultationInvoice };
       });
 
       const fullVisit = await Visit.findByPk(visit.id, {
         include: [
           patientInclude,
           { model: User, as: 'receptionist', attributes: staffAttributes },
+          specialtyInclude,
           reviewedPrescriptionInclude,
         ]
       });
@@ -154,13 +211,19 @@ const visitController = {
         visitId: visit.id,
         ticketNumber,
         visitDate,
+        specialtyId: visit.specialtyId,
         patientNumber: patient.patientNumber,
-        registeredBy: req.user.id
+        registeredBy: req.user.id,
+        invoiceNumber: invoice ? invoice.invoiceNumber : null,
+        consultationFee: invoice ? invoice.totalAmount : null
       });
 
       res.status(201).json({
         message: 'Passage ouvert avec succes',
-        visit: fullVisit
+        visit: fullVisit,
+        // Nulle quand aucun tarif n'est defini pour ce couple (specialite, type
+        // de passage) : le patient va directement en salle d'attente.
+        consultationInvoice: invoice
       });
     } catch (error) {
       logger.error('Create visit error:', error);
@@ -211,11 +274,15 @@ const visitController = {
 
   /**
    * File d'attente d'une journee
-   * GET /api/visits/queue?date=YYYY-MM-DD&status=WAITING&priority=URGENT
+   * GET /api/visits/queue?date=YYYY-MM-DD&status=WAITING&priority=URGENT&specialtyId=<uuid|none>
+   *
+   * `specialtyId=none` isole les passages non orientes : sans ce filtre, un
+   * patient qu'on a oublie d'orienter n'apparaitrait dans la file d'aucune
+   * specialite et attendrait indefiniment.
    */
   getQueue: async (req, res) => {
     try {
-      const { date, status, priority } = req.query;
+      const { date, status, priority, specialtyId } = req.query;
 
       if (date && !isBusinessDate(date)) {
         return res.status(400).json({ error: 'Date invalide (format attendu YYYY-MM-DD)' });
@@ -234,12 +301,18 @@ const visitController = {
         where.priority = String(priority).toUpperCase();
       }
 
+      if (specialtyId) {
+        where.specialtyId = specialtyId === 'none' ? { [Op.is]: null } : specialtyId;
+      }
+
       const visits = await Visit.findAll({
         where,
         include: [
           patientInclude,
           { model: User, as: 'doctor', attributes: staffAttributes },
           { model: User, as: 'receptionist', attributes: staffAttributes },
+          specialtyInclude,
+          consultationInvoiceInclude,
           reviewedPrescriptionInclude,
         ],
         order: QUEUE_ORDER
@@ -279,6 +352,8 @@ const visitController = {
           patientInclude,
           { model: User, as: 'doctor', attributes: staffAttributes },
           { model: User, as: 'receptionist', attributes: staffAttributes },
+          specialtyInclude,
+          consultationInvoiceInclude,
           reviewedPrescriptionInclude,
         ]
       });
@@ -307,7 +382,15 @@ const visitController = {
           { model: Patient, as: 'patient' },
           { model: User, as: 'doctor', attributes: staffAttributes },
           { model: User, as: 'receptionist', attributes: staffAttributes },
+          specialtyInclude,
           reviewedPrescriptionInclude,
+          {
+            model: Invoice,
+            as: 'invoices',
+            separate: true,
+            include: [{ model: InvoiceLine, as: 'lines' }],
+            order: [['createdAt', 'ASC']]
+          },
           {
             model: Prescription,
             as: 'prescriptions',
@@ -334,6 +417,15 @@ const visitController = {
   /**
    * Prendre en charge un passage (medecin)
    * PATCH /api/visits/:id/take
+   *
+   * Les frais de consultation sont dus avant la consultation : un passage dont
+   * la facture n'est pas soldee est refuse, et le patient renvoye a la caisse.
+   *
+   * Deux exceptions, sans lesquelles la regle deviendrait dangereuse :
+   *  - un passage marque URGENT est pris en charge immediatement ;
+   *  - un administrateur peut passer outre en motivant sa decision.
+   * Dans les deux cas la creance n'est pas effacee mais marquee a regulariser,
+   * et elle remonte dans la file de la caisse.
    */
   take: async (req, res) => {
     try {
@@ -341,6 +433,48 @@ const visitController = {
 
       if (!visit) {
         return res.status(404).json({ error: 'Passage non trouve' });
+      }
+
+      const invoice = await getConsultationInvoice(visit.id);
+      const unpaid = invoice && invoice.status !== 'PAID';
+
+      if (unpaid) {
+        const { deferPayment, deferReason } = req.body || {};
+        const isUrgent = visit.priority === 'URGENT';
+        const isAdminOverride = req.user.role === 'ADMIN' && deferPayment === true;
+
+        if (!isUrgent && !isAdminOverride) {
+          // 402 plutot que 409 : la cause est identifiable sans lire le message,
+          // ce qui permet a l'interface d'afficher le montant du plutot qu'une
+          // erreur generique.
+          return res.status(402).json({
+            error: 'Les frais de consultation n\'ont pas ete regles',
+            invoice: {
+              id: invoice.id,
+              invoiceNumber: invoice.invoiceNumber,
+              totalAmount: invoice.totalAmount,
+              paidAmount: invoice.paidAmount,
+              balance: invoice.getBalance()
+            },
+            hint: 'Le patient doit passer a la caisse avant la consultation'
+          });
+        }
+
+        await deferInvoice(invoice.id, {
+          reason: isUrgent
+            ? (deferReason || 'Urgence : soins delivres avant reglement')
+            : (deferReason || 'Derogation administrateur'),
+          userId: req.user.id
+        });
+
+        logger.warn('Consultation prise en charge sans reglement prealable', {
+          visitId: visit.id,
+          ticketNumber: visit.ticketNumber,
+          invoiceNumber: invoice.invoiceNumber,
+          balance: invoice.getBalance(),
+          reason: isUrgent ? 'URGENT' : 'ADMIN_OVERRIDE',
+          userId: req.user.id
+        });
       }
 
       // La condition `status: WAITING` fait partie du UPDATE : si deux medecins
@@ -371,6 +505,7 @@ const visitController = {
         include: [
           { model: Patient, as: 'patient' },
           { model: User, as: 'doctor', attributes: staffAttributes },
+          specialtyInclude,
           reviewedPrescriptionInclude
         ]
       });
@@ -537,6 +672,7 @@ const visitController = {
         where: { patientId: req.params.patientId },
         include: [
           { model: User, as: 'doctor', attributes: staffAttributes },
+          specialtyInclude,
           { model: Prescription, as: 'prescriptions', attributes: ['id', 'prescriptionNumber', 'status', 'totalAmount'] }
         ],
         order: [['visitDate', 'DESC'], ['ticketNumber', 'DESC']],

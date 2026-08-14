@@ -49,6 +49,7 @@ import { useAuth } from '../../contexts/AuthContext';
 
 const ROLES = [
   { value: 'RECEPTIONIST', label: 'Accueil', color: 'secondary' },
+  { value: 'NURSE', label: 'Infirmier', color: 'error' },
   { value: 'DOCTOR', label: 'Médecin', color: 'primary' },
   { value: 'CASHIER', label: 'Caissier', color: 'success' },
   { value: 'RADIOLOGIST', label: 'Radiologue', color: 'info' },
@@ -73,6 +74,7 @@ const EMPTY_FORM = {
   firstName: '',
   lastName: '',
   role: 'DOCTOR',
+  specialtyId: '',
   phone: '',
   serviceId: ''
 };
@@ -82,6 +84,7 @@ const UserManagement = () => {
 
   const [users, setUsers] = useState([]);
   const [services, setServices] = useState([]);
+  const [specialties, setSpecialties] = useState([]);
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState({ search: '', role: '', active: '' });
@@ -110,14 +113,16 @@ const UserManagement = () => {
       if (active.role) params.set('role', active.role);
       if (active.active !== '') params.set('active', active.active);
 
-      const [usersRes, statsRes, servicesRes] = await Promise.all([
+      const [usersRes, statsRes, servicesRes, specialtiesRes] = await Promise.all([
         api.get(`/users?${params.toString()}`),
         api.get('/users/stats'),
-        api.get('/admin/services')
+        api.get('/admin/services'),
+        api.get('/specialties?active=true')
       ]);
       setUsers(usersRes.data.users || []);
       setStats(statsRes.data);
       setServices(servicesRes.data.services || []);
+      setSpecialties(specialtiesRes.data.specialties || []);
     } catch (err) {
       notify(err.response?.data?.error || 'Erreur lors du chargement des utilisateurs', 'error');
     } finally {
@@ -159,7 +164,8 @@ const UserManagement = () => {
       lastName: u.lastName,
       role: u.role,
       phone: u.phone || '',
-      serviceId: u.serviceId || ''
+      serviceId: u.serviceId || '',
+      specialtyId: u.specialtyId || ''
     });
     setFormErrors({});
     setFormError('');
@@ -203,6 +209,11 @@ const UserManagement = () => {
         ? (formData.serviceId || null)
         : null;
 
+      // Meme raisonnement pour la specialite : elle ne concerne que les medecins.
+      const specialtyId = formData.role === 'DOCTOR'
+        ? (formData.specialtyId || null)
+        : null;
+
       if (formDialog.editing) {
         await api.put(`/users/${formDialog.editing.id}`, {
           email: formData.email,
@@ -210,11 +221,12 @@ const UserManagement = () => {
           lastName: formData.lastName,
           role: formData.role,
           phone: formData.phone || null,
-          serviceId
+          serviceId,
+          specialtyId
         });
         notify('Utilisateur mis à jour');
       } else {
-        await api.post('/users', { ...formData, serviceId });
+        await api.post('/users', { ...formData, serviceId, specialtyId });
         notify('Utilisateur créé avec succès');
       }
       setFormDialog({ open: false, editing: null });
@@ -603,6 +615,29 @@ const UserManagement = () => {
                 sx={inputStyle}
               />
             </Grid>
+            {formData.role === 'DOCTOR' && (
+              <Grid size={12}>
+                <FormControl fullWidth>
+                  <InputLabel>Spécialité</InputLabel>
+                  <Select
+                    value={formData.specialtyId}
+                    label="Spécialité"
+                    onChange={(e) => setFormData({ ...formData, specialtyId: e.target.value })}
+                    sx={{ borderRadius: 2 }}
+                  >
+                    <MenuItem value="">
+                      <em>Aucune (file non orientée)</em>
+                    </MenuItem>
+                    {specialties.map((s) => (
+                      <MenuItem key={s.id} value={s.id}>{s.name}</MenuItem>
+                    ))}
+                  </Select>
+                  <FormHelperText>
+                    Détermine la file d'attente ouverte par défaut à ce médecin.
+                  </FormHelperText>
+                </FormControl>
+              </Grid>
+            )}
             {SERVICE_ROLES.includes(formData.role) && (
               <Grid size={12}>
                 <FormControl

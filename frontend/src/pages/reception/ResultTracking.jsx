@@ -76,7 +76,7 @@ const ResultTracking = ({ onVisitCreated }) => {
         reviewedPrescriptionId: tracking.prescription.id,
         reason: `Retour résultats ${tracking.prescription.prescriptionNumber}`
       });
-      onVisitCreated(response.data.visit);
+      onVisitCreated(response.data.visit, response.data.consultationInvoice);
     } catch (err) {
       // 409 avec un passage existant = le patient est deja en file aujourd'hui
       setError(err.response?.data?.error || 'Erreur lors de l\'ouverture du passage');

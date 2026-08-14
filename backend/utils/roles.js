@@ -14,12 +14,20 @@
 // sens. Ces deux derniers sont conserves pour les comptes historiques.
 const SERVICE_ROLES = ['RADIOLOGIST', 'LAB_TECHNICIAN', 'TECHNICIAN'];
 
+// Infirmier. Introduit pour le service d'accueil des urgences : le triage est un
+// acte clinique, pas un geste de guichet. Laisser l'accueil coter la gravite
+// reviendrait a faire evaluer un patient par quelqu'un qui n'a pas qualite pour
+// le faire — c'est precisement le defaut du drapeau URGENT pose a l'accueil.
 const ROLES = [
   'RECEPTIONIST',
+  'NURSE',
   'DOCTOR',
   'CASHIER',
   ...SERVICE_ROLES,
   'ADMIN'
 ];
 
-module.exports = { ROLES, SERVICE_ROLES };
+// Roles autorises a ouvrir un dossier d'urgence et a coter le triage.
+const EMERGENCY_ROLES = ['NURSE', 'DOCTOR', 'ADMIN'];
+
+module.exports = { ROLES, SERVICE_ROLES, EMERGENCY_ROLES };

@@ -17,6 +17,7 @@ import Profile from './pages/Profile';
 
 // Dashboards par role
 import ReceptionDashboard from './pages/reception/ReceptionDashboard';
+import EmergencyDashboard from './pages/emergency/EmergencyDashboard';
 import DoctorDashboard from './pages/doctor/DoctorDashboard';
 import CashierDashboard from './pages/cashier/CashierDashboard';
 import ServiceDashboard from './pages/service/ServiceDashboard';
@@ -78,6 +79,16 @@ function App() {
               element={
                 <ProtectedWithLayout allowedRoles={['RECEPTIONIST', 'ADMIN']}>
                   <ReceptionDashboard />
+                </ProtectedWithLayout>
+              }
+            />
+
+            {/* Service d'accueil des urgences */}
+            <Route
+              path="/emergency/*"
+              element={
+                <ProtectedWithLayout allowedRoles={['NURSE', 'DOCTOR', 'ADMIN']}>
+                  <EmergencyDashboard />
                 </ProtectedWithLayout>
               }
             />

@@ -1,7 +1,7 @@
 const jwt = require('jsonwebtoken');
 const fs = require('fs');
 const path = require('path');
-const { User, Service } = require('../models');
+const { User, Service, Specialty } = require('../models');
 const jwtConfig = require('../config/jwt');
 const { validationResult } = require('express-validator');
 const logger = require('../utils/logger');
@@ -90,10 +90,15 @@ const authController = {
       const { email, password } = req.body;
 
       // Rechercher l'utilisateur, avec son service d'affectation : l'interface
-      // affiche le nom du service plutot que de le deduire du role.
+      // affiche le nom du service plutot que de le deduire du role. La
+      // specialite suit la meme logique : c'est elle qui determine la file
+      // d'attente affichee par defaut au medecin.
       const user = await User.findOne({
         where: { email },
-        include: [{ model: Service, as: 'service', attributes: ['id', 'code', 'name', 'color'] }]
+        include: [
+          { model: Service, as: 'service', attributes: ['id', 'code', 'name', 'color'] },
+          { model: Specialty, as: 'specialty', attributes: ['id', 'code', 'name', 'color'] }
+        ]
       });
       if (!user) {
         return res.status(401).json({
@@ -152,8 +157,19 @@ const authController = {
    */
   getProfile: async (req, res) => {
     try {
+      // Rechargement plutot que `req.user` : le middleware d'authentification
+      // charge l'utilisateur seul, sans son service ni sa specialite. Sans ce
+      // rechargement, un medecin qui rafraichit sa page perdrait le filtre de
+      // file d'attente qu'il avait a la connexion.
+      const user = await User.findByPk(req.user.id, {
+        include: [
+          { model: Service, as: 'service', attributes: ['id', 'code', 'name', 'color'] },
+          { model: Specialty, as: 'specialty', attributes: ['id', 'code', 'name', 'color'] }
+        ]
+      });
+
       res.json({
-        user: req.user.toJSON()
+        user: user.toJSON()
       });
     } catch (error) {
       logger.error('Profile error:', error);

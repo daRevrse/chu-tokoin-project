@@ -12,9 +12,12 @@ const POLL_INTERVAL_MS = 15000;
  *
  * @param {object} [options]
  * @param {string} [options.status] - statuts a inclure, ex. 'WAITING'
+ * @param {string} [options.specialtyId] - specialite a isoler, ou 'none' pour
+ *   les passages que l'accueil n'a orientes vers aucune specialite. Absent, la
+ *   file est complete.
  * @param {boolean} [options.enabled=true] - suspend le polling si false
  */
-const useVisitQueue = ({ status, enabled = true } = {}) => {
+const useVisitQueue = ({ status, specialtyId, enabled = true } = {}) => {
   const [visits, setVisits] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -25,7 +28,11 @@ const useVisitQueue = ({ status, enabled = true } = {}) => {
     if (!silent) setLoading(true);
 
     try {
-      const params = status ? `?status=${encodeURIComponent(status)}` : '';
+      const search = new URLSearchParams();
+      if (status) search.set('status', status);
+      if (specialtyId) search.set('specialtyId', specialtyId);
+
+      const params = search.toString() ? `?${search}` : '';
       const response = await api.get(`/visits/queue${params}`);
       setVisits(response.data.visits || []);
       setError('');
@@ -36,7 +43,7 @@ const useVisitQueue = ({ status, enabled = true } = {}) => {
     } finally {
       setLoading(false);
     }
-  }, [status]);
+  }, [status, specialtyId]);
 
   useEffect(() => {
     if (!enabled) return undefined;

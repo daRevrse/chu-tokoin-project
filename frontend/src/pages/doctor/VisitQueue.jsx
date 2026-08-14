@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Paper,
@@ -16,22 +16,40 @@ import {
   CircularProgress,
   Alert,
   Tooltip,
-  IconButton
+  IconButton,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem
 } from '@mui/material';
 import {
   ConfirmationNumberRounded as TicketIcon,
   RefreshRounded as RefreshIcon,
   EventBusyRounded as EmptyIcon,
   PlayArrowRounded as TakeIcon,
-  WarningAmberRounded as UrgentIcon
+  WarningAmberRounded as UrgentIcon,
+  MoneyOffRounded as UnpaidIcon
 } from '@mui/icons-material';
 import api from '../../services/api';
 import useVisitQueue from '../../hooks/useVisitQueue';
+import { useAuth } from '../../contexts/AuthContext';
 
 const formatTime = (value) => new Date(value).toLocaleTimeString('fr-FR', {
   hour: '2-digit',
   minute: '2-digit'
 });
+
+const formatAmount = (amount) =>
+  new Intl.NumberFormat('fr-FR').format(Number(amount) || 0) + ' FCFA';
+
+/**
+ * Facture de consultation non soldee du passage, s'il y en a une.
+ *
+ * La file joint la facture de consultation (`invoices`) : une facture absente
+ * signifie qu'aucun tarif n'est defini, donc rien a reclamer.
+ */
+const unpaidInvoice = (visit) =>
+  (visit.invoices || []).find(invoice => invoice.status !== 'PAID') || null;
 
 const waitedMinutes = (visit) => Math.max(
   0,
@@ -57,10 +75,31 @@ const calculateAge = (dateOfBirth) => {
  * ouvre le dossier d'un autre patient).
  */
 const VisitQueue = ({ onTakeVisit }) => {
-  const { visits, loading, error, refresh } = useVisitQueue({ status: 'WAITING' });
+  const { user } = useAuth();
+  // Le medecin ouvre sa journee sur sa propre file. Sans ce filtre par defaut,
+  // il verrait les patients de toutes les specialites et devrait trier lui-meme.
+  const [specialtyFilter, setSpecialtyFilter] = useState(user?.specialtyId || 'ALL');
+  const [specialties, setSpecialties] = useState([]);
+
+  const { visits, loading, error, refresh } = useVisitQueue({
+    status: 'WAITING',
+    specialtyId: specialtyFilter === 'ALL' ? undefined : specialtyFilter
+  });
   const [ticketInput, setTicketInput] = useState('');
   const [ticketError, setTicketError] = useState('');
   const [busyId, setBusyId] = useState(null);
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const response = await api.get('/specialties?active=true');
+        setSpecialties(response.data.specialties || []);
+      } catch (err) {
+        console.error('Erreur chargement specialites:', err);
+      }
+    };
+    load();
+  }, []);
 
   const takeVisit = async (visitId) => {
     setBusyId(visitId);
@@ -70,8 +109,17 @@ const VisitQueue = ({ onTakeVisit }) => {
       const response = await api.patch(`/visits/${visitId}/take`);
       onTakeVisit(response.data.visit);
     } catch (err) {
-      // 409 = un confrere a pris le patient entre l'affichage et le clic
-      setTicketError(err.response?.data?.error || 'Erreur lors de la prise en charge');
+      // 402 = frais de consultation non regles ; 409 = un confrere a pris le
+      // patient entre l'affichage et le clic.
+      if (err.response?.status === 402) {
+        const balance = err.response.data?.invoice?.balance;
+        setTicketError(
+          `Frais de consultation non réglés${balance ? ` (${formatAmount(balance)} dus)` : ''}. `
+          + 'Le patient doit passer à la caisse.'
+        );
+      } else {
+        setTicketError(err.response?.data?.error || 'Erreur lors de la prise en charge');
+      }
       refresh();
     } finally {
       setBusyId(null);
@@ -116,7 +164,27 @@ const VisitQueue = ({ onTakeVisit }) => {
           </Typography>
         </Typography>
 
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+          <FormControl size="small" sx={{ minWidth: 200 }}>
+            <InputLabel>Spécialité</InputLabel>
+            <Select
+              value={specialtyFilter}
+              label="Spécialité"
+              onChange={(e) => setSpecialtyFilter(e.target.value)}
+              sx={{ borderRadius: 2 }}
+            >
+              <MenuItem value="ALL">Toutes les files</MenuItem>
+              {specialties.map((specialty) => (
+                <MenuItem key={specialty.id} value={specialty.id}>
+                  {specialty.name}
+                </MenuItem>
+              ))}
+              {/* Sans cette entree, un patient que l'accueil a oublie d'orienter
+                  n'apparaitrait dans la file d'aucune specialite. */}
+              <MenuItem value="none">Non orientés</MenuItem>
+            </Select>
+          </FormControl>
+
           <form onSubmit={handleTicketSubmit}>
             <TextField
               size="small"
@@ -157,6 +225,7 @@ const VisitQueue = ({ onTakeVisit }) => {
               <TableRow>
                 <TableCell sx={{ fontWeight: 'bold' }}>N°</TableCell>
                 <TableCell sx={{ fontWeight: 'bold' }}>Patient</TableCell>
+                <TableCell sx={{ fontWeight: 'bold' }}>Spécialité</TableCell>
                 <TableCell sx={{ fontWeight: 'bold' }}>Motif</TableCell>
                 <TableCell sx={{ fontWeight: 'bold' }}>Constantes</TableCell>
                 <TableCell sx={{ fontWeight: 'bold' }}>Arrivée</TableCell>
@@ -166,7 +235,7 @@ const VisitQueue = ({ onTakeVisit }) => {
             <TableBody>
               {visits.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} align="center">
+                  <TableCell colSpan={7} align="center">
                     <Box sx={{ py: 6 }}>
                       <EmptyIcon sx={{ fontSize: 48, color: 'text.disabled', mb: 2 }} />
                       <Typography color="textSecondary">
@@ -183,6 +252,7 @@ const VisitQueue = ({ onTakeVisit }) => {
                   const isUrgent = visit.priority === 'URGENT';
                   const age = calculateAge(visit.patient?.dateOfBirth);
                   const waited = waitedMinutes(visit);
+                  const unpaid = unpaidInvoice(visit);
 
                   return (
                     <TableRow
@@ -216,6 +286,18 @@ const VisitQueue = ({ onTakeVisit }) => {
                           {age !== null && ` · ${age} ans`}
                           {visit.patient?.gender && ` · ${visit.patient.gender === 'M' ? 'H' : 'F'}`}
                         </Typography>
+                      </TableCell>
+                      <TableCell>
+                        {visit.specialty ? (
+                          <Chip
+                            label={visit.specialty.name}
+                            size="small"
+                            variant="outlined"
+                            sx={{ borderColor: visit.specialty.color || undefined }}
+                          />
+                        ) : (
+                          <Typography variant="caption" color="text.disabled">—</Typography>
+                        )}
                       </TableCell>
                       <TableCell sx={{ maxWidth: 220 }}>
                         {/* Un retour resultats n'est pas une consultation : sans
@@ -262,17 +344,34 @@ const VisitQueue = ({ onTakeVisit }) => {
                         </Typography>
                       </TableCell>
                       <TableCell align="center">
+                        {/* Le bouton reste actif sur une urgence impayee : la
+                            prise en charge est autorisee, la creance sera
+                            marquee a regulariser. */}
                         <Button
                           variant="contained"
                           size="small"
                           color={isUrgent ? 'error' : 'primary'}
                           startIcon={<TakeIcon />}
-                          disabled={busyId === visit.id}
+                          disabled={busyId === visit.id || (Boolean(unpaid) && !isUrgent)}
                           onClick={() => takeVisit(visit.id)}
                           sx={{ borderRadius: 2, textTransform: 'none', boxShadow: 'none', whiteSpace: 'nowrap' }}
                         >
                           {busyId === visit.id ? 'Ouverture...' : 'Prendre en charge'}
                         </Button>
+                        {unpaid && (
+                          <Tooltip
+                            title={`Reste à payer : ${formatAmount(Number(unpaid.totalAmount) - Number(unpaid.paidAmount))}`}
+                            arrow
+                          >
+                            <Chip
+                              icon={<UnpaidIcon />}
+                              label={isUrgent ? 'À régulariser' : 'Non réglé'}
+                              size="small"
+                              color="warning"
+                              sx={{ mt: 1, display: 'flex' }}
+                            />
+                          </Tooltip>
+                        )}
                       </TableCell>
                     </TableRow>
                   );
