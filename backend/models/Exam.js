@@ -45,6 +45,19 @@ const Exam = sequelize.define('Exam', {
       }
     }
   },
+  // Delai habituel entre le paiement et un resultat valide, en heures. Sert a
+  // annoncer une date au patient a la caisse : sans elle, il revient trop tot,
+  // ce qui est le principal cout d'un circuit ou c'est lui qui repasse.
+  // 24 h par defaut, a ajuster par service depuis l'administration.
+  resultDelayHours: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    defaultValue: 24,
+    validate: {
+      min: { args: [0], msg: 'Le delai ne peut pas etre negatif' },
+      max: { args: [2160], msg: 'Delai invalide (90 jours maximum)' }
+    }
+  },
   description: {
     type: DataTypes.TEXT,
     allowNull: true

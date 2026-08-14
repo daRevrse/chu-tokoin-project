@@ -10,6 +10,7 @@ import {
   TextField,
   InputAdornment,
   FormControl,
+  FormHelperText,
   InputLabel,
   Select,
   MenuItem,
@@ -47,14 +48,25 @@ import api from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
 
 const ROLES = [
+  { value: 'RECEPTIONIST', label: 'Accueil', color: 'secondary' },
+  { value: 'NURSE', label: 'Infirmier', color: 'error' },
   { value: 'DOCTOR', label: 'Médecin', color: 'primary' },
   { value: 'CASHIER', label: 'Caissier', color: 'success' },
   { value: 'RADIOLOGIST', label: 'Radiologue', color: 'info' },
   { value: 'LAB_TECHNICIAN', label: 'Laborantin', color: 'warning' },
+  { value: 'TECHNICIAN', label: 'Technicien', color: 'info' },
   { value: 'ADMIN', label: 'Administrateur', color: 'error' }
 ];
 
 const getRole = (value) => ROLES.find((r) => r.value === value) || { label: value, color: 'default' };
+
+// Roles portant une affectation a un service technique.
+const SERVICE_ROLES = ['RADIOLOGIST', 'LAB_TECHNICIAN', 'TECHNICIAN'];
+
+// Pour un TECHNICIAN, le service n'est pas decoratif : c'est lui qui definit
+// quels examens le compte peut traiter. Les deux roles historiques gardent un
+// perimetre deductible de leur role, le service y reste facultatif.
+const requiresService = (role) => role === 'TECHNICIAN';
 
 const EMPTY_FORM = {
   email: '',
@@ -62,13 +74,17 @@ const EMPTY_FORM = {
   firstName: '',
   lastName: '',
   role: 'DOCTOR',
-  phone: ''
+  specialtyId: '',
+  phone: '',
+  serviceId: ''
 };
 
 const UserManagement = () => {
   const { user: currentUser } = useAuth();
 
   const [users, setUsers] = useState([]);
+  const [services, setServices] = useState([]);
+  const [specialties, setSpecialties] = useState([]);
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState({ search: '', role: '', active: '' });
@@ -97,12 +113,16 @@ const UserManagement = () => {
       if (active.role) params.set('role', active.role);
       if (active.active !== '') params.set('active', active.active);
 
-      const [usersRes, statsRes] = await Promise.all([
+      const [usersRes, statsRes, servicesRes, specialtiesRes] = await Promise.all([
         api.get(`/users?${params.toString()}`),
-        api.get('/users/stats')
+        api.get('/users/stats'),
+        api.get('/admin/services'),
+        api.get('/specialties?active=true')
       ]);
       setUsers(usersRes.data.users || []);
       setStats(statsRes.data);
+      setServices(servicesRes.data.services || []);
+      setSpecialties(specialtiesRes.data.specialties || []);
     } catch (err) {
       notify(err.response?.data?.error || 'Erreur lors du chargement des utilisateurs', 'error');
     } finally {
@@ -143,7 +163,9 @@ const UserManagement = () => {
       firstName: u.firstName,
       lastName: u.lastName,
       role: u.role,
-      phone: u.phone || ''
+      phone: u.phone || '',
+      serviceId: u.serviceId || '',
+      specialtyId: u.specialtyId || ''
     });
     setFormErrors({});
     setFormError('');
@@ -166,6 +188,9 @@ const UserManagement = () => {
       else if (formData.password.length < 6) errors.password = 'Au moins 6 caractères';
     }
     if (!formData.role) errors.role = 'Le rôle est requis';
+    if (requiresService(formData.role) && !formData.serviceId) {
+      errors.serviceId = 'Un technicien doit être affecté à un service';
+    }
 
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
@@ -177,17 +202,31 @@ const UserManagement = () => {
     setSaving(true);
     setFormError('');
     try {
+      // `null` et non `''` : le serveur attend un UUID ou l'absence de valeur.
+      // Le backend remet de toute facon l'affectation a null pour un role non
+      // technique, mais l'envoyer explicitement evite un aller-retour inutile.
+      const serviceId = SERVICE_ROLES.includes(formData.role)
+        ? (formData.serviceId || null)
+        : null;
+
+      // Meme raisonnement pour la specialite : elle ne concerne que les medecins.
+      const specialtyId = formData.role === 'DOCTOR'
+        ? (formData.specialtyId || null)
+        : null;
+
       if (formDialog.editing) {
         await api.put(`/users/${formDialog.editing.id}`, {
           email: formData.email,
           firstName: formData.firstName,
           lastName: formData.lastName,
           role: formData.role,
-          phone: formData.phone || null
+          phone: formData.phone || null,
+          serviceId,
+          specialtyId
         });
         notify('Utilisateur mis à jour');
       } else {
-        await api.post('/users', formData);
+        await api.post('/users', { ...formData, serviceId, specialtyId });
         notify('Utilisateur créé avec succès');
       }
       setFormDialog({ open: false, editing: null });
@@ -576,6 +615,61 @@ const UserManagement = () => {
                 sx={inputStyle}
               />
             </Grid>
+            {formData.role === 'DOCTOR' && (
+              <Grid size={12}>
+                <FormControl fullWidth>
+                  <InputLabel>Spécialité</InputLabel>
+                  <Select
+                    value={formData.specialtyId}
+                    label="Spécialité"
+                    onChange={(e) => setFormData({ ...formData, specialtyId: e.target.value })}
+                    sx={{ borderRadius: 2 }}
+                  >
+                    <MenuItem value="">
+                      <em>Aucune (file non orientée)</em>
+                    </MenuItem>
+                    {specialties.map((s) => (
+                      <MenuItem key={s.id} value={s.id}>{s.name}</MenuItem>
+                    ))}
+                  </Select>
+                  <FormHelperText>
+                    Détermine la file d'attente ouverte par défaut à ce médecin.
+                  </FormHelperText>
+                </FormControl>
+              </Grid>
+            )}
+            {SERVICE_ROLES.includes(formData.role) && (
+              <Grid size={12}>
+                <FormControl
+                  fullWidth
+                  required={requiresService(formData.role)}
+                  error={Boolean(formErrors.serviceId)}
+                >
+                  <InputLabel>Service d'affectation</InputLabel>
+                  <Select
+                    value={formData.serviceId}
+                    label="Service d'affectation"
+                    onChange={(e) => setFormData({ ...formData, serviceId: e.target.value })}
+                    sx={{ borderRadius: 2 }}
+                  >
+                    {!requiresService(formData.role) && (
+                      <MenuItem value="">
+                        <em>Aucun (périmètre déduit du rôle)</em>
+                      </MenuItem>
+                    )}
+                    {services.map((s) => (
+                      <MenuItem key={s.id} value={s.id}>{s.name}</MenuItem>
+                    ))}
+                  </Select>
+                  <FormHelperText>
+                    {formErrors.serviceId
+                      || (requiresService(formData.role)
+                        ? 'Détermine les examens que ce compte pourra traiter.'
+                        : 'Facultatif : ce rôle a un périmètre par défaut.')}
+                  </FormHelperText>
+                </FormControl>
+              </Grid>
+            )}
           </Grid>
         </DialogContent>
         <DialogActions sx={{ p: 3, pt: 2 }}>

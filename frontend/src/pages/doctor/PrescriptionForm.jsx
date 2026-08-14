@@ -36,7 +36,9 @@ import {
 } from '@mui/icons-material';
 import api from '../../services/api';
 
-const PrescriptionForm = ({ patient, onBack, onSuccess }) => {
+// `visitId` rattache la prescription au passage en cours. Optionnel : une
+// prescription peut encore etre creee hors du circuit d'accueil.
+const PrescriptionForm = ({ patient, onBack, onSuccess, visitId }) => {
   const [exams, setExams] = useState([]);
   const [selectedExams, setSelectedExams] = useState([]);
   const [notes, setNotes] = useState('');
@@ -122,7 +124,8 @@ const PrescriptionForm = ({ patient, onBack, onSuccess }) => {
       const response = await api.post('/prescriptions', {
         patientId: patient.id,
         examIds: selectedExams.map(e => e.id),
-        notes: notes.trim() || null
+        notes: notes.trim() || null,
+        ...(visitId ? { visitId } : {})
       });
 
       setSuccess('Prescription créée avec succès !');

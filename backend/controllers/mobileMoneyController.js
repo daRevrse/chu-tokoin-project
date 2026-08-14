@@ -1,7 +1,24 @@
 const { Payment, Prescription, PrescriptionExam, MobileMoneyTransaction } = require('../models');
 const mobileMoneyService = require('../services/mobileMoneyService');
 const qrcodeService = require('../services/qrcodeService');
+const { recordExpectedResultAt } = require('../services/resultReadinessService');
+const { ensureExamInvoice } = require('../services/examBillingService');
+const { refreshTotals } = require('../services/invoiceService');
 const logger = require('../utils/logger');
+
+/**
+ * Reporte sur la facture un paiement mobile qui vient d'aboutir.
+ *
+ * Le paiement est cree en PENDING puis bascule en SUCCESS de facon asynchrone
+ * (callback du provider, verification de statut, simulation). Le total encaisse
+ * de la facture ne se calculant que sur les paiements aboutis, il doit etre
+ * recalcule a chaque bascule, faute de quoi la facture resterait eternellement
+ * impayee alors que l'argent est arrive.
+ */
+const syncInvoiceAfterMobilePayment = async (payment) => {
+  if (!payment.invoiceId) return;
+  await refreshTotals(payment.invoiceId);
+};
 
 const mobileMoneyController = {
   /**
@@ -31,10 +48,22 @@ const mobileMoneyController = {
         return res.status(400).json({ error: 'Cette prescription a deja ete traitee' });
       }
 
+      // Le paiement mobile porte sur la facture d'examens, comme un paiement au
+      // guichet. Elle est emise a la creation de la prescription ; l'appel reste
+      // necessaire pour les prescriptions anterieures a la facturation.
+      const invoice = await ensureExamInvoice(prescription.id, { issuedBy: req.user.id });
+
+      if (!invoice) {
+        return res.status(400).json({ error: 'Cette prescription ne comporte aucun examen a facturer' });
+      }
+
       // Creer le paiement en attente
       const payment = await Payment.create({
+        invoiceId: invoice.id,
         prescriptionId,
-        amount: prescription.totalAmount,
+        // Le reste a payer, et non le total : une facture deja reglee en partie
+        // au guichet ne doit pas etre encaissee une seconde fois en entier.
+        amount: invoice.getBalance(),
         paymentMethod: 'MOBILE_MONEY',
         paymentStatus: 'PENDING',
         cashierId: req.user.id
@@ -159,12 +188,17 @@ const mobileMoneyController = {
         payment.paymentDate = new Date();
         await payment.save();
 
+        await syncInvoiceAfterMobilePayment(payment);
+
         // Mettre a jour prescription et examens
         await payment.prescription.update({ status: 'PAID' });
         await PrescriptionExam.update(
           { status: 'PAID' },
           { where: { prescriptionId: payment.prescriptionId } }
         );
+
+          // Date annoncee au patient, figee a l'instant du paiement.
+          await recordExpectedResultAt(payment.prescriptionId, payment.paymentDate);
 
         logger.info('Mobile money payment successful', {
           paymentId: payment.id,
@@ -251,11 +285,16 @@ const mobileMoneyController = {
           payment.paymentDate = new Date();
           await payment.save();
 
+          await syncInvoiceAfterMobilePayment(payment);
+
           await payment.prescription.update({ status: 'PAID' });
           await PrescriptionExam.update(
             { status: 'PAID' },
             { where: { prescriptionId: payment.prescriptionId } }
           );
+
+            // Date annoncee au patient, figee a l'instant du paiement.
+            await recordExpectedResultAt(payment.prescriptionId, payment.paymentDate);
 
           logger.info('Mobile money payment confirmed via status check', { paymentId: payment.id });
         }
@@ -324,11 +363,16 @@ const mobileMoneyController = {
         payment.paymentDate = new Date();
         await payment.save();
 
+        await syncInvoiceAfterMobilePayment(payment);
+
         await payment.prescription.update({ status: 'PAID' });
         await PrescriptionExam.update(
           { status: 'PAID' },
           { where: { prescriptionId: payment.prescriptionId } }
         );
+
+          // Date annoncee au patient, figee a l'instant du paiement.
+          await recordExpectedResultAt(payment.prescriptionId, payment.paymentDate);
 
         logger.info('Simulated successful callback', { paymentId });
       } else {

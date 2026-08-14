@@ -21,22 +21,36 @@ import {
   PendingActionsRounded as PendingIcon,
   CheckCircleRounded as CompletedIcon,
   AccountBalanceWalletRounded as MoneyIcon,
-  ReceiptRounded as ReceiptIcon
+  ReceiptRounded as ReceiptIcon,
+  EventSeatRounded as ConsultationIcon,
+  RunningWithErrorsRounded as OutstandingIcon
 } from '@mui/icons-material';
 import { useAuth } from '../../contexts/AuthContext';
 import api from '../../services/api';
 import PendingPrescriptions from './PendingPrescriptions';
 import PaymentForm from './PaymentForm';
+import ConsultationPayments from './ConsultationPayments';
+import OutstandingInvoices from './OutstandingInvoices';
+
+// Les onglets suivent l'ordre du parcours du patient : il paie sa consultation
+// avant de voir le medecin, ses examens apres. Les creances viennent ensuite :
+// ce sont les patients qui ont echappe aux deux premieres files.
+const TAB_CONSULTATIONS = 0;
+const TAB_EXAMS = 1;
+const TAB_OUTSTANDING = 2;
+const TAB_HISTORY = 3;
 
 const CashierDashboard = () => {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState(0);
+  const [activeTab, setActiveTab] = useState(TAB_CONSULTATIONS);
   const [selectedPrescription, setSelectedPrescription] = useState(null);
   const [recentPayments, setRecentPayments] = useState([]);
   const [stats, setStats] = useState({
     todayPayments: 0,
     todayAmount: 0,
-    pendingCount: 0
+    pendingCount: 0,
+    consultationCount: 0,
+    consultationDue: 0
   });
 
   useEffect(() => {
@@ -55,9 +69,10 @@ const CashierDashboard = () => {
 
   const fetchStats = async () => {
     try {
-      const [paymentsRes, pendingRes] = await Promise.all([
+      const [paymentsRes, pendingRes, consultationsRes] = await Promise.all([
         api.get('/payments'),
-        api.get('/prescriptions/pending')
+        api.get('/prescriptions/pending'),
+        api.get('/invoices/consultations/today')
       ]);
 
       const payments = paymentsRes.data.payments || [];
@@ -75,7 +90,9 @@ const CashierDashboard = () => {
       setStats({
         todayPayments: todayPayments.length,
         todayAmount,
-        pendingCount: pending.length
+        pendingCount: pending.length,
+        consultationCount: consultationsRes.data.count || 0,
+        consultationDue: consultationsRes.data.totalDue || 0
       });
     } catch (error) {
       console.error('Erreur chargement stats:', error);
@@ -86,11 +103,19 @@ const CashierDashboard = () => {
     setSelectedPrescription(prescription);
   };
 
-  const handlePaymentSuccess = () => {
-    setSelectedPrescription(null);
+  // Le paiement est enregistre : on rafraichit les listes en arriere-plan mais
+  // on laisse l'ecran de recu affiche. Il porte le QR code et la date de
+  // disponibilite a annoncer au patient ; le fermer aussitot les rendait
+  // invisibles.
+  const handlePaymentRecorded = () => {
     fetchRecentPayments();
     fetchStats();
-    setActiveTab(1);
+  };
+
+  // La caissiere a fini d'annoncer et de remettre le recu.
+  const handlePaymentDone = () => {
+    setSelectedPrescription(null);
+    setActiveTab(TAB_HISTORY);
   };
 
   const formatPrice = (price) => {
@@ -137,7 +162,8 @@ const CashierDashboard = () => {
         <PaymentForm
           prescription={selectedPrescription}
           onBack={() => setSelectedPrescription(null)}
-          onSuccess={handlePaymentSuccess}
+          onSuccess={handlePaymentRecorded}
+          onDone={handlePaymentDone}
         />
       </Container>
     );
@@ -156,7 +182,25 @@ const CashierDashboard = () => {
 
       {/* Statistiques Modernisées */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid size={{ xs: 12, sm: 4 }}>
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+          <Card {...cardStyle}>
+            <CardContent sx={{ display: 'flex', alignItems: 'center', p: 3 }}>
+              <Box sx={{ bgcolor: '#ede7f6', width: 64, height: 64, borderRadius: 3, display: 'flex', alignItems: 'center', justifyContent: 'center', mr: 2 }}>
+                <ConsultationIcon sx={{ fontSize: 32, color: '#673ab7' }} />
+              </Box>
+              <Box>
+                <Typography variant="h4" fontWeight="bold" color="textPrimary">
+                  {stats.consultationCount}
+                </Typography>
+                <Typography color="textSecondary" variant="body2" fontWeight="medium">
+                  Consultations à Encaisser
+                </Typography>
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <Card {...cardStyle}>
             <CardContent sx={{ display: 'flex', alignItems: 'center', p: 3 }}>
               <Box sx={{ bgcolor: '#fff3e0', width: 64, height: 64, borderRadius: 3, display: 'flex', alignItems: 'center', justifyContent: 'center', mr: 2 }}>
@@ -174,7 +218,7 @@ const CashierDashboard = () => {
           </Card>
         </Grid>
 
-        <Grid size={{ xs: 12, sm: 4 }}>
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <Card {...cardStyle}>
             <CardContent sx={{ display: 'flex', alignItems: 'center', p: 3 }}>
               <Box sx={{ bgcolor: '#e8f5e9', width: 64, height: 64, borderRadius: 3, display: 'flex', alignItems: 'center', justifyContent: 'center', mr: 2 }}>
@@ -192,7 +236,7 @@ const CashierDashboard = () => {
           </Card>
         </Grid>
 
-        <Grid size={{ xs: 12, sm: 4 }}>
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <Card {...cardStyle}>
             <CardContent sx={{ display: 'flex', alignItems: 'center', p: 3 }}>
               <Box sx={{ bgcolor: '#e3f2fd', width: 64, height: 64, borderRadius: 3, display: 'flex', alignItems: 'center', justifyContent: 'center', mr: 2 }}>
@@ -225,8 +269,18 @@ const CashierDashboard = () => {
           }}
         >
           <Tab
+            icon={<ConsultationIcon />}
+            label={`Consultations (${stats.consultationCount})`}
+            iconPosition="start"
+          />
+          <Tab
             icon={<PendingIcon />}
-            label={`En Attente (${stats.pendingCount})`}
+            label={`Examens (${stats.pendingCount})`}
+            iconPosition="start"
+          />
+          <Tab
+            icon={<OutstandingIcon />}
+            label="Créances"
             iconPosition="start"
           />
           <Tab
@@ -238,13 +292,27 @@ const CashierDashboard = () => {
       </Paper>
 
       {/* Contenu des onglets */}
-      {activeTab === 0 && (
+      {activeTab === TAB_CONSULTATIONS && (
+        <Paper elevation={0} sx={{ p: 4, borderRadius: 4, boxShadow: '0 4px 20px rgba(0,0,0,0.03)' }}>
+          <ConsultationPayments
+            onPaymentRecorded={() => { fetchRecentPayments(); fetchStats(); }}
+          />
+        </Paper>
+      )}
+
+      {activeTab === TAB_EXAMS && (
         <Paper elevation={0} sx={{ p: 4, borderRadius: 4, boxShadow: '0 4px 20px rgba(0,0,0,0.03)' }}>
           <PendingPrescriptions onSelectPrescription={handleSelectPrescription} />
         </Paper>
       )}
 
-      {activeTab === 1 && (
+      {activeTab === TAB_OUTSTANDING && (
+        <Paper elevation={0} sx={{ p: 4, borderRadius: 4, boxShadow: '0 4px 20px rgba(0,0,0,0.03)' }}>
+          <OutstandingInvoices />
+        </Paper>
+      )}
+
+      {activeTab === TAB_HISTORY && (
         <Paper elevation={0} sx={{ p: 4, borderRadius: 4, boxShadow: '0 4px 20px rgba(0,0,0,0.03)' }}>
           <Box sx={{ mb: 3 }}>
             <Typography variant="h6" fontWeight="bold">

@@ -46,6 +46,7 @@ const EMPTY_FORM = {
   serviceId: '',
   categoryId: '',
   price: '',
+  resultDelayHours: '24',
   description: '',
   isActive: true
 };
@@ -147,6 +148,7 @@ const ExamManagement = () => {
       serviceId: exam.serviceId || '',
       categoryId: exam.categoryId || '',
       price: String(exam.price ?? ''),
+      resultDelayHours: String(exam.resultDelayHours ?? 24),
       description: exam.description || '',
       isActive: exam.isActive
     });
@@ -168,6 +170,13 @@ const ExamManagement = () => {
       errors.price = 'Le prix doit être un nombre positif';
     }
 
+    if (formData.resultDelayHours !== '') {
+      const delay = Number(formData.resultDelayHours);
+      if (isNaN(delay) || delay < 0 || delay > 2160) {
+        errors.resultDelayHours = 'Délai invalide (0 à 2160 heures)';
+      }
+    }
+
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
   };
@@ -185,6 +194,7 @@ const ExamManagement = () => {
         await api.put(`/exams/${formDialog.editing.id}`, {
           name: formData.name,
           price: Number(formData.price),
+          resultDelayHours: formData.resultDelayHours === '' ? null : Number(formData.resultDelayHours),
           description: formData.description || null,
           isActive: formData.isActive,
           serviceId: formData.serviceId,
@@ -198,6 +208,7 @@ const ExamManagement = () => {
           serviceId: formData.serviceId,
           categoryId: formData.categoryId || null,
           price: Number(formData.price),
+          resultDelayHours: formData.resultDelayHours === '' ? null : Number(formData.resultDelayHours),
           description: formData.description || null
         });
         notify('Examen créé avec succès');
@@ -522,6 +533,22 @@ const ExamManagement = () => {
                 error={Boolean(formErrors.price)}
                 helperText={formErrors.price}
                 InputProps={{ inputProps: { min: 0, step: 500 } }}
+                sx={inputStyle}
+              />
+            </Grid>
+            <Grid size={{ xs: 12, sm: 6 }}>
+              <TextField
+                fullWidth
+                type="number"
+                label="Délai de résultat (heures)"
+                value={formData.resultDelayHours}
+                onChange={(e) => setFormData({ ...formData, resultDelayHours: e.target.value })}
+                error={Boolean(formErrors.resultDelayHours)}
+                helperText={
+                  formErrors.resultDelayHours
+                  || 'Date annoncée au patient à la caisse. Le plus long des examens fait foi.'
+                }
+                InputProps={{ inputProps: { min: 0, max: 2160, step: 1 } }}
                 sx={inputStyle}
               />
             </Grid>

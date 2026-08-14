@@ -18,6 +18,8 @@ import {
   TablePagination,
   Chip,
   Button,
+  Badge,
+  Alert,
   CircularProgress,
   TextField,
   FormControl,
@@ -31,7 +33,7 @@ import {
   AssignmentRounded as AssignmentIcon,
   AddRounded as AddIcon,
   FolderRounded as FolderIcon,
-  PersonAddRounded as PersonAddIcon,
+  QueueRounded as QueueIcon,
   TodayRounded as TodayIcon,
   HourglassEmptyRounded as PendingIcon,
   ListAltRounded as TotalIcon,
@@ -42,8 +44,9 @@ import {
 } from '@mui/icons-material';
 import { useAuth } from '../../contexts/AuthContext';
 import api from '../../services/api';
-import PatientSearch from './PatientSearch';
-import PatientForm from './PatientForm';
+import PatientSearch from '../../components/patient/PatientSearch';
+import VisitQueue from './VisitQueue';
+import ConsultationView from './ConsultationView';
 import PrescriptionForm from './PrescriptionForm';
 import PatientRecord from './PatientRecord';
 import PrescriptionDetail from './PrescriptionDetail';
@@ -53,8 +56,8 @@ const DoctorDashboard = () => {
   const [activeTab, setActiveTab] = useState(0);
   const [selectedPatient, setSelectedPatient] = useState(null);
   const [showPrescriptionForm, setShowPrescriptionForm] = useState(false);
-  const [showPatientForm, setShowPatientForm] = useState(false);
-  const [editingPatient, setEditingPatient] = useState(null);
+  // Passage en cours de consultation, pris depuis la file d'attente
+  const [activeVisit, setActiveVisit] = useState(null);
   const [prescriptions, setPrescriptions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedPrescriptionId, setSelectedPrescriptionId] = useState(null);
@@ -62,6 +65,7 @@ const DoctorDashboard = () => {
     today: { prescriptions: 0, patients: 0 },
     pending: { prescriptions: 0, awaitingResults: 0 },
     totals: { prescriptions: 0, patients: 0 },
+    waitingCount: 0,
     newResultsCount: 0
   });
 
@@ -152,26 +156,22 @@ const DoctorDashboard = () => {
     setSelectedPatient(null);
     fetchPrescriptions();
     fetchStats();
-    setActiveTab(1);
+    setActiveTab(2);
   };
 
   const handleSelectPatient = (patient) => {
     setSelectedPatient(patient);
-    setActiveTab(2);
+    setActiveTab(3);
   };
 
-  const handlePatientCreated = (patient) => {
-    setShowPatientForm(false);
-    setSelectedPatient(patient);
-    setShowPrescriptionForm(true);
+  const handleTakeVisit = (visit) => {
+    setActiveVisit(visit);
   };
 
-  const handleEditPatient = (patient) => {
-    setEditingPatient(patient);
-  };
-
-  const handlePatientUpdated = () => {
-    setEditingPatient(null);
+  const handleConsultationCompleted = () => {
+    setActiveVisit(null);
+    fetchPrescriptions();
+    fetchStats();
   };
 
   const getStatusColor = (status) => {
@@ -241,24 +241,13 @@ const DoctorDashboard = () => {
     );
   }
 
-  if (editingPatient) {
+  if (activeVisit) {
     return (
       <Container maxWidth="xl" sx={{ py: 3 }}>
-        <PatientForm
-          patient={editingPatient}
-          onBack={() => setEditingPatient(null)}
-          onSuccess={handlePatientUpdated}
-        />
-      </Container>
-    );
-  }
-
-  if (showPatientForm) {
-    return (
-      <Container maxWidth="xl" sx={{ py: 3 }}>
-        <PatientForm
-          onBack={() => setShowPatientForm(false)}
-          onSuccess={handlePatientCreated}
+        <ConsultationView
+          visit={activeVisit}
+          onBack={() => setActiveVisit(null)}
+          onCompleted={handleConsultationCompleted}
         />
       </Container>
     );
@@ -378,6 +367,15 @@ const DoctorDashboard = () => {
             '& .MuiTab-root': { fontWeight: 'bold', textTransform: 'none', minHeight: 60, fontSize: '1rem' }
           }}
         >
+          <Tab
+            icon={
+              <Badge badgeContent={stats.waitingCount} color="warning">
+                <QueueIcon />
+              </Badge>
+            }
+            label="File d'attente"
+            iconPosition="start"
+          />
           <Tab icon={<PersonSearchIcon />} label="Rechercher Patient" iconPosition="start" />
           <Tab icon={<AssignmentIcon />} label="Mes Prescriptions" iconPosition="start" />
           <Tab icon={<FolderIcon />} label="Dossiers Patients" iconPosition="start" />
@@ -387,26 +385,26 @@ const DoctorDashboard = () => {
       {/* Contenu des onglets */}
       {activeTab === 0 && (
         <Paper elevation={0} sx={{ p: 4, borderRadius: 4, boxShadow: '0 4px 20px rgba(0,0,0,0.03)' }}>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-            {/* <Typography variant="h6" fontWeight="bold">Rechercher un Patient</Typography> */}
-            <Button
-              variant="outlined"
-              startIcon={<PersonAddIcon />}
-              onClick={() => setShowPatientForm(true)}
-              sx={{ borderRadius: 2, textTransform: 'none' }}
-            >
-              Nouveau Patient
-            </Button>
-          </Box>
-          <PatientSearch
-            onSelectPatient={handleSelectPatient}
-            onCreatePrescription={handleCreatePrescription}
-            onEditPatient={handleEditPatient}
-          />
+          <VisitQueue onTakeVisit={handleTakeVisit} />
         </Paper>
       )}
 
       {activeTab === 1 && (
+        <Paper elevation={0} sx={{ p: 4, borderRadius: 4, boxShadow: '0 4px 20px rgba(0,0,0,0.03)' }}>
+          {/* La creation de patient appartient a l'accueil : le medecin
+              retrouve ici les patients deja enregistres. */}
+          <Alert severity="info" sx={{ mb: 3, borderRadius: 2 }}>
+            L'enregistrement des nouveaux patients se fait à l'accueil. Les patients du jour
+            apparaissent dans l'onglet « File d'attente ».
+          </Alert>
+          <PatientSearch
+            onSelectPatient={handleSelectPatient}
+            onCreatePrescription={handleCreatePrescription}
+          />
+        </Paper>
+      )}
+
+      {activeTab === 2 && (
         <Paper elevation={0} sx={{ p: 4, borderRadius: 4, boxShadow: '0 4px 20px rgba(0,0,0,0.03)' }}>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
             <Typography variant="h6" fontWeight="bold">
@@ -594,7 +592,7 @@ const DoctorDashboard = () => {
         </Paper>
       )}
 
-      {activeTab === 2 && (
+      {activeTab === 3 && (
         <Box sx={{ mt: 2 }}>
           <PatientRecord initialPatient={selectedPatient} />
         </Box>

@@ -5,6 +5,7 @@ import CssBaseline from '@mui/material/CssBaseline';
 
 import theme from './theme';
 import { AuthProvider } from './contexts/AuthContext';
+import { HospitalProvider } from './contexts/HospitalContext';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import MainLayout from './components/layout/MainLayout';
 
@@ -15,6 +16,8 @@ import Unauthorized from './pages/Unauthorized';
 import Profile from './pages/Profile';
 
 // Dashboards par role
+import ReceptionDashboard from './pages/reception/ReceptionDashboard';
+import EmergencyDashboard from './pages/emergency/EmergencyDashboard';
 import DoctorDashboard from './pages/doctor/DoctorDashboard';
 import CashierDashboard from './pages/cashier/CashierDashboard';
 import ServiceDashboard from './pages/service/ServiceDashboard';
@@ -40,6 +43,7 @@ function App() {
     <ThemeProvider theme={theme}>
       <CssBaseline />
       
+      <HospitalProvider>
       <AuthProvider>
         <BrowserRouter>
         {/* <Screensaver timeout={3000} /> */}
@@ -69,6 +73,26 @@ function App() {
               }
             />
 
+            {/* Espace Accueil */}
+            <Route
+              path="/reception/*"
+              element={
+                <ProtectedWithLayout allowedRoles={['RECEPTIONIST', 'ADMIN']}>
+                  <ReceptionDashboard />
+                </ProtectedWithLayout>
+              }
+            />
+
+            {/* Service d'accueil des urgences */}
+            <Route
+              path="/emergency/*"
+              element={
+                <ProtectedWithLayout allowedRoles={['NURSE', 'DOCTOR', 'ADMIN']}>
+                  <EmergencyDashboard />
+                </ProtectedWithLayout>
+              }
+            />
+
             {/* Espace Medecin */}
             <Route
               path="/doctor/*"
@@ -93,7 +117,7 @@ function App() {
             <Route
               path="/service/*"
               element={
-                <ProtectedWithLayout allowedRoles={['RADIOLOGIST', 'LAB_TECHNICIAN', 'ADMIN']}>
+                <ProtectedWithLayout allowedRoles={['RADIOLOGIST', 'LAB_TECHNICIAN', 'TECHNICIAN', 'ADMIN']}>
                   <ServiceDashboard />
                 </ProtectedWithLayout>
               }
@@ -117,6 +141,7 @@ function App() {
           </Routes>
         </BrowserRouter>
       </AuthProvider>
+      </HospitalProvider>
     </ThemeProvider>
   );
 }

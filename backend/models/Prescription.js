@@ -28,6 +28,17 @@ const Prescription = sequelize.define('Prescription', {
       key: 'id'
     }
   },
+  // Passage a l'origine de la prescription. Nullable : les prescriptions
+  // anterieures a la mise en place de l'accueil n'en ont pas, et tout le code
+  // aval doit tolerer l'absence de passage.
+  visitId: {
+    type: DataTypes.UUID,
+    allowNull: true,
+    references: {
+      model: 'visits',
+      key: 'id'
+    }
+  },
   prescriptionDate: {
     type: DataTypes.DATE,
     defaultValue: DataTypes.NOW
@@ -39,6 +50,14 @@ const Prescription = sequelize.define('Prescription', {
   totalAmount: {
     type: DataTypes.DECIMAL(10, 2),
     defaultValue: 0
+  },
+  // Date annoncee au patient a la caisse. Figee au paiement plutot que
+  // recalculee : c'est un engagement pris a un instant donne, il ne doit pas
+  // bouger si un delai d'examen est modifie ensuite en administration.
+  // Nulle pour les prescriptions anterieures a cette fonctionnalite.
+  expectedResultAt: {
+    type: DataTypes.DATE,
+    allowNull: true
   },
   notes: {
     type: DataTypes.TEXT,

@@ -1,9 +1,68 @@
 const { Op } = require('sequelize');
-const { User } = require('../models');
+const { User, Service, Specialty } = require('../models');
 const { validationResult } = require('express-validator');
 const logger = require('../utils/logger');
 
-const ROLES = ['DOCTOR', 'CASHIER', 'RADIOLOGIST', 'LAB_TECHNICIAN', 'ADMIN'];
+const { ROLES, SERVICE_ROLES } = require('../utils/roles');
+
+/**
+ * Valide l'affectation a un service en fonction du role.
+ *
+ * Seul le personnel technique porte un service. Pour un TECHNICIAN, le service
+ * n'est pas optionnel : c'est lui, et non le role, qui definit son perimetre
+ * d'examens (voir utils/serviceScope.js). Un TECHNICIAN sans service ne verrait
+ * aucun examen et son compte serait inutilisable.
+ *
+ * @returns {Promise<{ value?: string|null, error?: string }>}
+ */
+const resolveServiceId = async (role, serviceId) => {
+  if (!SERVICE_ROLES.includes(role)) {
+    // Un role non technique ne conserve aucune affectation.
+    return { value: null };
+  }
+
+  if (!serviceId) {
+    if (role === 'TECHNICIAN') {
+      return { error: 'Un technicien doit etre affecte a un service' };
+    }
+    // RADIOLOGIST et LAB_TECHNICIAN restent rattachables par leur categorie
+    // historique (voir utils/serviceScope.js), le service est donc facultatif.
+    return { value: null };
+  }
+
+  const service = await Service.findByPk(serviceId);
+  if (!service) {
+    return { error: 'Service introuvable' };
+  }
+
+  return { value: service.id };
+};
+
+/**
+ * Valide la specialite en fonction du role.
+ *
+ * Seul un medecin en porte une, et elle reste facultative : un etablissement qui
+ * n'a pas encore declare ses specialites doit continuer a creer des comptes
+ * medecin. Un medecin sans specialite consulte dans la file non orientee.
+ *
+ * @returns {Promise<{ value?: string|null, error?: string }>}
+ */
+const resolveSpecialtyId = async (role, specialtyId) => {
+  if (role !== 'DOCTOR') {
+    // Changer de role libere la specialite : un ancien medecin devenu
+    // administrateur ne doit plus apparaitre dans une file de consultation.
+    return { value: null };
+  }
+
+  if (!specialtyId) return { value: null };
+
+  const specialty = await Specialty.findByPk(specialtyId);
+  if (!specialty) {
+    return { error: 'Specialite introuvable' };
+  }
+
+  return { value: specialty.id };
+};
 
 /**
  * Compte les administrateurs actifs, en excluant eventuellement un utilisateur.
@@ -48,6 +107,12 @@ const userController = {
 
       const users = await User.findAll({
         where,
+        // Le service d'affectation est affiche dans la liste d'administration
+        // et conditionne le perimetre du personnel technique.
+        include: [
+          { model: Service, as: 'service', attributes: ['id', 'code', 'name', 'color'] },
+          { model: Specialty, as: 'specialty', attributes: ['id', 'code', 'name', 'color'] }
+        ],
         order: [['role', 'ASC'], ['lastName', 'ASC'], ['firstName', 'ASC']]
       });
 
@@ -129,13 +194,23 @@ const userController = {
         return res.status(400).json({ errors: errors.array() });
       }
 
-      const { email, password, firstName, lastName, role, phone } = req.body;
+      const { email, password, firstName, lastName, role, phone, serviceId, specialtyId } = req.body;
 
       const existing = await User.findOne({ where: { email } });
       if (existing) {
         return res.status(400).json({
           error: 'Un utilisateur avec cet email existe deja'
         });
+      }
+
+      const resolvedService = await resolveServiceId(role, serviceId);
+      if (resolvedService.error) {
+        return res.status(400).json({ error: resolvedService.error });
+      }
+
+      const resolvedSpecialty = await resolveSpecialtyId(role, specialtyId);
+      if (resolvedSpecialty.error) {
+        return res.status(400).json({ error: resolvedSpecialty.error });
       }
 
       // Le hachage du mot de passe est assure par le hook beforeCreate du modele
@@ -145,7 +220,9 @@ const userController = {
         firstName,
         lastName,
         role,
-        phone: phone || null
+        phone: phone || null,
+        serviceId: resolvedService.value,
+        specialtyId: resolvedSpecialty.value
       });
 
       logger.info('Utilisateur cree', {
@@ -182,7 +259,7 @@ const userController = {
         return res.status(404).json({ error: 'Utilisateur non trouve' });
       }
 
-      const { email, firstName, lastName, role, phone } = req.body;
+      const { email, firstName, lastName, role, phone, serviceId, specialtyId } = req.body;
 
       // L'email doit rester unique
       if (email && email !== user.email) {
@@ -212,12 +289,33 @@ const userController = {
         }
       }
 
+      // Le service est resolu par rapport au role final : retrograder un
+      // technicien vers un role non technique doit liberer son affectation.
+      const finalRole = role || user.role;
+      const resolvedService = serviceId !== undefined || role
+        ? await resolveServiceId(finalRole, serviceId !== undefined ? serviceId : user.serviceId)
+        : { value: user.serviceId };
+
+      if (resolvedService.error) {
+        return res.status(400).json({ error: resolvedService.error });
+      }
+
+      const resolvedSpecialty = specialtyId !== undefined || role
+        ? await resolveSpecialtyId(finalRole, specialtyId !== undefined ? specialtyId : user.specialtyId)
+        : { value: user.specialtyId };
+
+      if (resolvedSpecialty.error) {
+        return res.status(400).json({ error: resolvedSpecialty.error });
+      }
+
       await user.update({
         email: email || user.email,
         firstName: firstName || user.firstName,
         lastName: lastName || user.lastName,
-        role: role || user.role,
-        phone: phone !== undefined ? phone : user.phone
+        role: finalRole,
+        phone: phone !== undefined ? phone : user.phone,
+        serviceId: resolvedService.value,
+        specialtyId: resolvedSpecialty.value
       });
 
       logger.info('Utilisateur mis a jour', {

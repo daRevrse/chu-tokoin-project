@@ -1,6 +1,7 @@
 const { DataTypes } = require('sequelize');
 const bcrypt = require('bcrypt');
 const sequelize = require('../config/database');
+const { ROLES } = require('../utils/roles');
 
 const User = sequelize.define('User', {
   id: {
@@ -47,21 +48,33 @@ const User = sequelize.define('User', {
       }
     }
   },
-  // TECHNICIAN est le role generique du personnel d'un service ; il permet
-  // d'affecter du personnel aux nouveaux services (Cardiologie, ORL, ...).
-  // RADIOLOGIST et LAB_TECHNICIAN sont conserves pour les comptes existants.
+  // Liste definie dans utils/roles.js : voir ce fichier pour le detail des
+  // roles et la raison pour laquelle elle ne doit pas etre recopiee ici.
   role: {
-    type: DataTypes.ENUM('DOCTOR', 'CASHIER', 'RADIOLOGIST', 'LAB_TECHNICIAN', 'TECHNICIAN', 'ADMIN'),
+    type: DataTypes.ENUM(...ROLES),
     allowNull: false,
     validate: {
       isIn: {
-        args: [['DOCTOR', 'CASHIER', 'RADIOLOGIST', 'LAB_TECHNICIAN', 'TECHNICIAN', 'ADMIN']],
+        args: [ROLES],
         msg: 'Role invalide'
       }
     }
   },
   // Service d'affectation du personnel technique
   serviceId: {
+    type: DataTypes.UUID,
+    allowNull: true
+  },
+  // Specialite dans laquelle le medecin consulte. Ne concerne que le role
+  // DOCTOR ; distincte de `serviceId`, qui designe un service executant des
+  // examens (voir models/Specialty.js).
+  //
+  // Un seul rattachement, pas une liste : un medecin qui consulte dans deux
+  // disciplines existe, mais il tient deux vacations distinctes, et le jour ou
+  // ce cas se presentera il faudra de toute facon modeliser la vacation. Une
+  // relation N-N posee d'avance compliquerait la file d'attente sans repondre a
+  // la vraie question.
+  specialtyId: {
     type: DataTypes.UUID,
     allowNull: true
   },

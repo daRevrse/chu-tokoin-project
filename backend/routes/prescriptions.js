@@ -4,6 +4,7 @@ const { body } = require('express-validator');
 const prescriptionController = require('../controllers/prescriptionController');
 const authenticateToken = require('../middleware/auth');
 const roleCheck = require('../middleware/roleCheck');
+const { SERVICE_ROLES } = require('../utils/roles');
 
 // Validation pour la creation de prescription
 const createValidation = [
@@ -16,9 +17,17 @@ const createValidation = [
   body('examIds.*')
     .isUUID()
     .withMessage('ID examen invalide'),
+  // Le formulaire envoie explicitement `null` quand le champ est vide, et
+  // `.optional()` seul ne saute que `undefined`.
   body('notes')
-    .optional()
-    .isString()
+    .optional({ values: 'null' })
+    .isString(),
+  // Passage a l'origine de la consultation. Optionnel : une prescription peut
+  // encore etre creee hors circuit d'accueil.
+  body('visitId')
+    .optional({ checkFalsy: true })
+    .isUUID()
+    .withMessage('Passage invalide')
 ];
 
 // Toutes les routes necessitent une authentification
@@ -47,7 +56,7 @@ router.get('/pending',
 );
 
 router.get('/number/:number',
-  roleCheck('DOCTOR', 'CASHIER', 'RADIOLOGIST', 'LAB_TECHNICIAN', 'ADMIN'),
+  roleCheck('DOCTOR', 'CASHIER', ...SERVICE_ROLES, 'ADMIN'),
   prescriptionController.getByNumber
 );
 
@@ -57,7 +66,7 @@ router.get('/:id/pdf',
 );
 
 router.get('/:id',
-  roleCheck('DOCTOR', 'CASHIER', 'RADIOLOGIST', 'LAB_TECHNICIAN', 'ADMIN'),
+  roleCheck('DOCTOR', 'CASHIER', ...SERVICE_ROLES, 'ADMIN'),
   prescriptionController.getById
 );
 

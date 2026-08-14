@@ -45,6 +45,22 @@ const seedData = async () => {
         phone: '+228 90 11 22 22'
       },
       {
+        email: 'accueil@chu-tokoin.tg',
+        password: 'Accueil123!',
+        firstName: 'Akouvi',
+        lastName: 'DOSSEH',
+        role: 'RECEPTIONIST',
+        phone: '+228 90 55 55 55'
+      },
+      {
+        email: 'infirmier@chu-tokoin.tg',
+        password: 'Infirmier123!',
+        firstName: 'Komi',
+        lastName: 'AMEGAN',
+        role: 'NURSE',
+        phone: '+228 90 66 66 66'
+      },
+      {
         email: 'caissier@chu-tokoin.tg',
         password: 'Caissier123!',
         firstName: 'Ama',
@@ -240,6 +256,8 @@ const seedData = async () => {
     console.log(`Patients crees: ${patients.length}`);
     console.log('\nComptes de test:');
     console.log('  - Admin: admin@chu-tokoin.tg / Admin123!');
+    console.log('  - Accueil: accueil@chu-tokoin.tg / Accueil123!');
+    console.log('  - Infirmier: infirmier@chu-tokoin.tg / Infirmier123!');
     console.log('  - Medecin: medecin@chu-tokoin.tg / Medecin123!');
     console.log('  - Caissier: caissier@chu-tokoin.tg / Caissier123!');
     console.log('  - Radiologue: radio@chu-tokoin.tg / Radio123!');

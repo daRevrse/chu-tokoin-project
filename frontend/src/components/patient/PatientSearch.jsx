@@ -21,11 +21,25 @@ import {
   AddRounded as AddIcon,
   VisibilityRounded as ViewIcon,
   EditRounded as EditIcon,
-  PersonOffRounded as NoPatientIcon
+  PersonOffRounded as NoPatientIcon,
+  ConfirmationNumberRounded as TicketIcon
 } from '@mui/icons-material';
 import api from '../../services/api';
 
-const PatientSearch = ({ onSelectPatient, onCreatePrescription, onEditPatient }) => {
+/**
+ * Recherche de patients, partagee entre l'accueil et le medecin.
+ *
+ * Les actions proposees sur chaque ligne dependent des callbacks fournis :
+ * l'accueil passe `onOpenVisit` (ouvrir un passage), le medecin
+ * `onCreatePrescription`.
+ */
+const PatientSearch = ({
+  onSelectPatient,
+  onCreatePrescription,
+  onEditPatient,
+  onOpenVisit,
+  emptyHint
+}) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [patients, setPatients] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -113,6 +127,11 @@ const PatientSearch = ({ onSelectPatient, onCreatePrescription, onEditPatient })
                       <Typography color="textSecondary">
                         Aucun patient trouvé
                       </Typography>
+                      {emptyHint && (
+                        <Typography variant="body2" color="text.disabled" sx={{ mt: 1 }}>
+                          {emptyHint}
+                        </Typography>
+                      )}
                     </Box>
                   </TableCell>
                 </TableRow>
@@ -158,16 +177,30 @@ const PatientSearch = ({ onSelectPatient, onCreatePrescription, onEditPatient })
                           </IconButton>
                         </Tooltip>
                       )}
-                      <Tooltip title="Nouvelle prescription" arrow>
-                        <IconButton
-                          size="small"
-                          color="primary"
-                          onClick={() => onCreatePrescription && onCreatePrescription(patient)}
-                          sx={{ ml: 0.5, bgcolor: '#e3f2fd', '&:hover': { bgcolor: 'primary.main', color: 'white' } }}
-                        >
-                          <AddIcon fontSize="small" />
-                        </IconButton>
-                      </Tooltip>
+                      {onCreatePrescription && (
+                        <Tooltip title="Nouvelle prescription" arrow>
+                          <IconButton
+                            size="small"
+                            color="primary"
+                            onClick={() => onCreatePrescription(patient)}
+                            sx={{ ml: 0.5, bgcolor: '#e3f2fd', '&:hover': { bgcolor: 'primary.main', color: 'white' } }}
+                          >
+                            <AddIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                      )}
+                      {onOpenVisit && (
+                        <Tooltip title="Ouvrir un passage" arrow>
+                          <IconButton
+                            size="small"
+                            color="primary"
+                            onClick={() => onOpenVisit(patient)}
+                            sx={{ ml: 0.5, bgcolor: '#e3f2fd', '&:hover': { bgcolor: 'primary.main', color: 'white' } }}
+                          >
+                            <TicketIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))

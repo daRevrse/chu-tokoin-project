@@ -38,8 +38,13 @@ Thumbs.db
 desktop.ini
 
 # Uploads (garder le dossier mais pas le contenu)
+# `uploads/*` contient un slash : le motif est ancre a la racine du depot et ne
+# couvrait donc pas backend/uploads/, ou atterrissent les resultats d'examens
+# et les photos de profil. Ces fichiers ne doivent jamais entrer dans l'historique.
 uploads/*
 !uploads/.gitkeep
+backend/uploads/*
+!backend/uploads/.gitkeep
 
 # Misc
 *.pem
@@ -61,3 +66,8 @@ temp/
 
 # Optional REPL history
 .node_repl_history
+
+# Outillage local Claude Code : configuration de poste et worktrees temporaires.
+# `worktrees/` etait suivi sous forme de gitlinks pointant vers des depots
+# absents, ce qui faisait echouer la resolution des sous-modules au clonage.
+.claude/

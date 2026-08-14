@@ -55,9 +55,13 @@ const qrcodeService = {
    * @param {Object} prescription - La prescription
    * @param {Object} patient - Le patient
    * @param {Array} exams - Les examens
+   * @param {number|string} [totalPaid] - Montant total regle. A preciser quand la
+   *   facture a ete reglee en plusieurs versements : `payment.amount` ne serait
+   *   alors que le dernier d'entre eux, et le service qui scanne le code verrait
+   *   une somme inferieure a ce que le patient a paye.
    * @returns {Object} - Les donnees pour le QR code
    */
-  generatePaymentQRData: (payment, prescription, patient, exams) => {
+  generatePaymentQRData: (payment, prescription, patient, exams, totalPaid) => {
     return {
       type: 'CHU_TOKOIN_PAYMENT',
       version: '1.0',
@@ -70,7 +74,7 @@ const qrcodeService = {
         number: patient.patientNumber,
         name: `${patient.lastName} ${patient.firstName}`
       },
-      amount: parseFloat(payment.amount),
+      amount: parseFloat(totalPaid !== undefined && totalPaid !== null ? totalPaid : payment.amount),
       exams: exams.map(pe => ({
         id: pe.id,
         code: pe.exam.code,

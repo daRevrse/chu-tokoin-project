@@ -1,5 +1,15 @@
 const reportService = require('../services/reportService');
 const logger = require('../utils/logger');
+const { getHospitalSettings, getDocumentHeaderLines } = require('../services/hospitalSettingsService');
+const { APP_IDENTITY } = require('../utils/appIdentity');
+
+// Le nom et l'adresse de l'etablissement viennent de la base : ils sont donc
+// echappes avant d'etre injectes dans le HTML du rapport.
+const escapeHtml = (value) => String(value ?? '')
+  .replace(/&/g, '&amp;')
+  .replace(/</g, '&lt;')
+  .replace(/>/g, '&gt;')
+  .replace(/"/g, '&quot;');
 
 const reportController = {
   /**
@@ -165,6 +175,11 @@ const reportController = {
         return res.status(400).json({ error: 'Type de rapport invalide' });
       }
 
+      const hospital = await getHospitalSettings();
+      const headerLines = getDocumentHeaderLines(hospital)
+        .map(line => `<p class="subtitle">${escapeHtml(line)}</p>`)
+        .join('');
+
       // Generer HTML pour impression/PDF
       const html = `
 <!DOCTYPE html>
@@ -183,10 +198,12 @@ const reportController = {
     .summary { background-color: #e3f2fd; padding: 20px; border-radius: 8px; margin: 20px 0; }
     .summary h3 { margin-top: 0; }
     .footer { text-align: center; margin-top: 40px; color: #666; font-size: 12px; }
+    .subtitle { text-align: center; color: #666; font-size: 12px; margin: 2px 0; }
   </style>
 </head>
 <body>
-  <h1>CHU Tokoin</h1>
+  <h1>${escapeHtml(hospital.name)}</h1>
+  ${headerLines}
   <h2>${title}</h2>
 
   <div class="summary">
@@ -258,7 +275,8 @@ const reportController = {
 
   <div class="footer">
     <p>Genere le ${new Date().toLocaleString('fr-FR')}</p>
-    <p>CHU Tokoin - Systeme de Gestion des Examens Medicaux</p>
+    <p>${escapeHtml(hospital.name)} - ${APP_IDENTITY.name} ${APP_IDENTITY.description}</p>
+    ${hospital.documentFooter ? `<p>${escapeHtml(hospital.documentFooter)}</p>` : ''}
   </div>
 </body>
 </html>

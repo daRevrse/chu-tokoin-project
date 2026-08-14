@@ -34,12 +34,14 @@ import {
 } from '@mui/icons-material';
 import { useSearchParams } from 'react-router-dom';
 import axios from 'axios';
+import { useHospital } from '../../contexts/HospitalContext';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
 
 const PatientPortal = () => {
   const [searchParams] = useSearchParams();
   const token = searchParams.get('token');
+  const { hospital, logoSrc } = useHospital();
 
   const [patient, setPatient] = useState(null);
   const [results, setResults] = useState([]);
@@ -203,10 +205,14 @@ const PatientPortal = () => {
         >
           <Box sx={{ display: 'flex', alignItems: 'center' }}>
             <Box sx={{ bgcolor: 'rgba(255,255,255,0.15)', p: 2, borderRadius: 3, mr: 3, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <HospitalIcon sx={{ fontSize: 40 }} />
+              {logoSrc ? (
+                <Box component="img" src={logoSrc} alt={hospital.name} sx={{ width: 40, height: 40, objectFit: 'contain' }} />
+              ) : (
+                <HospitalIcon sx={{ fontSize: 40 }} />
+              )}
             </Box>
             <Box>
-              <Typography variant="h4" fontWeight="bold">CHU Tokoin</Typography>
+              <Typography variant="h4" fontWeight="bold">{hospital.name}</Typography>
               <Typography variant="subtitle1" sx={{ opacity: 0.9 }}>Portail Patient — Résultats d'examens</Typography>
             </Box>
           </Box>
@@ -412,7 +418,7 @@ const PatientPortal = () => {
         {/* Footer */}
         <Box sx={{ mt: 5, textAlign: 'center' }}>
           <Typography variant="body2" fontWeight="bold" color="textSecondary">
-            CHU Tokoin — Portail Patient
+            {hospital.name} — Portail Patient
           </Typography>
           <Typography variant="caption" color="textSecondary">
             Ce lien d'accès est temporaire et expire après 24 heures.

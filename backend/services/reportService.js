@@ -1,7 +1,42 @@
-const { Payment, Prescription, PrescriptionExam, Exam, User, Patient } = require('../models');
+const { Payment, Prescription, PrescriptionExam, Exam, User, Patient, Invoice } = require('../models');
 const { Op } = require('sequelize');
 const sequelize = require('../config/database');
 const logger = require('../utils/logger');
+
+/**
+ * Patient et reference d'une ligne de recette.
+ *
+ * Un paiement de consultation ne porte pas de prescription : le lire depuis
+ * `payment.prescription` afficherait "N/A" sur toutes les consultations
+ * encaissees, alors qu'elles comptent dans le total. La facture, elle, designe
+ * toujours un patient.
+ */
+const describePayment = (payment) => {
+  const patient = payment.prescription?.patient || payment.invoice?.patient;
+
+  return {
+    reference: payment.prescription?.prescriptionNumber
+      || payment.invoice?.invoiceNumber
+      || '—',
+    patientName: patient ? `${patient.lastName} ${patient.firstName}` : 'N/A',
+    patientNumber: patient?.patientNumber
+  };
+};
+
+// Charge de quoi nommer le payeur quel que soit le motif du paiement.
+const paymentSourceIncludes = [
+  {
+    model: Prescription,
+    as: 'prescription',
+    include: [{ model: Patient, as: 'patient', attributes: ['id', 'firstName', 'lastName', 'patientNumber'] }]
+  },
+  {
+    model: Invoice,
+    as: 'invoice',
+    attributes: ['id', 'invoiceNumber', 'invoiceType'],
+    include: [{ model: Patient, as: 'patient', attributes: ['id', 'firstName', 'lastName', 'patientNumber'] }]
+  }
+];
 
 const reportService = {
   /**
@@ -20,11 +55,7 @@ const reportService = {
       },
       include: [
         { model: User, as: 'cashier', attributes: ['id', 'firstName', 'lastName'] },
-        {
-          model: Prescription,
-          as: 'prescription',
-          include: [{ model: Patient, as: 'patient', attributes: ['id', 'firstName', 'lastName', 'patientNumber'] }]
-        }
+        ...paymentSourceIncludes
       ],
       order: [['paymentDate', 'ASC']]
     });
@@ -52,18 +83,24 @@ const reportService = {
       totalAmount,
       byPaymentMethod,
       byCashier,
-      payments: payments.map(p => ({
-        paymentNumber: p.paymentNumber,
-        prescriptionNumber: p.prescription?.prescriptionNumber,
-        patientName: p.prescription?.patient
-          ? `${p.prescription.patient.lastName} ${p.prescription.patient.firstName}`
-          : 'N/A',
-        patientNumber: p.prescription?.patient?.patientNumber,
-        amount: parseFloat(p.amount || 0),
-        paymentMethod: p.paymentMethod,
-        cashier: p.cashier ? `${p.cashier.lastName} ${p.cashier.firstName}` : 'N/A',
-        time: p.paymentDate
-      }))
+      payments: payments.map(p => {
+        const { reference, patientName, patientNumber } = describePayment(p);
+
+        return {
+          paymentNumber: p.paymentNumber,
+          // Numero de prescription pour un paiement d'examens, numero de facture
+          // pour une consultation. Le nom de la propriete reste inchange : le
+          // frontend et l'export CSV l'affichent en colonne "N Prescription".
+          prescriptionNumber: reference,
+          invoiceType: p.invoice?.invoiceType || null,
+          patientName,
+          patientNumber,
+          amount: parseFloat(p.amount || 0),
+          paymentMethod: p.paymentMethod,
+          cashier: p.cashier ? `${p.cashier.lastName} ${p.cashier.firstName}` : 'N/A',
+          time: p.paymentDate
+        };
+      })
     };
   },
 

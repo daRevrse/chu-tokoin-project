@@ -137,7 +137,7 @@ const examController = {
         return res.status(400).json({ errors: errors.array() });
       }
 
-      const { code, name, category, price, description, serviceId, categoryId } = req.body;
+      const { code, name, category, price, description, serviceId, categoryId, resultDelayHours } = req.body;
 
       // Verifier si le code existe deja
       const existingExam = await Exam.findOne({ where: { code } });
@@ -159,7 +159,11 @@ const examController = {
         serviceId: placement.serviceId,
         categoryId: placement.categoryId,
         price,
-        description
+        description,
+        // Absent : le modele applique son defaut de 24 h.
+        ...(resultDelayHours !== undefined && resultDelayHours !== null
+          ? { resultDelayHours }
+          : {})
       });
 
       logger.info('Examen cree', { examId: exam.id, code: exam.code });
@@ -182,6 +186,11 @@ const examController = {
    */
   update: async (req, res) => {
     try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+      }
+
       const exam = await Exam.findByPk(req.params.id);
 
       if (!exam) {
@@ -190,7 +199,7 @@ const examController = {
         });
       }
 
-      const { name, price, description, isActive, serviceId, categoryId } = req.body;
+      const { name, price, description, isActive, serviceId, categoryId, resultDelayHours } = req.body;
 
       // Le rattachement n'est recalcule que s'il est explicitement fourni
       let placement = null;
@@ -210,6 +219,9 @@ const examController = {
         price: price !== undefined ? price : exam.price,
         description: description !== undefined ? description : exam.description,
         isActive: isActive !== undefined ? isActive : exam.isActive,
+        resultDelayHours: resultDelayHours !== undefined && resultDelayHours !== null
+          ? resultDelayHours
+          : exam.resultDelayHours,
         ...(placement ? {
           serviceId: placement.serviceId,
           categoryId: placement.categoryId,

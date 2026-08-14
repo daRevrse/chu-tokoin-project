@@ -16,7 +16,6 @@ import {
   Menu,
   MenuItem,
   Chip,
-  Badge,
   useTheme,
   useMediaQuery
 } from '@mui/material';
@@ -27,15 +26,23 @@ import {
   MedicalServicesRounded,
   ScienceRounded,
   AdminPanelSettingsRounded,
+  SupportAgentRounded,
+  EmergencyRounded,
   LogoutRounded,
   NotificationsNoneRounded,
   AccountCircleRounded
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import { useHospital } from '../../contexts/HospitalContext';
+import { APP_IDENTITY } from '../../config/appIdentity';
 import api from '../../services/api';
 
 const drawerWidth = 280;
+
+// Personnel affecte a un service technique. TECHNICIAN est le role generique
+// des services crees apres coup (Cardiologie, Pneumologie, Prelevement...).
+const SERVICE_ROLES = ['RADIOLOGIST', 'LAB_TECHNICIAN', 'TECHNICIAN'];
 
 const API_ORIGIN = (process.env.REACT_APP_API_URL || 'http://localhost:5000/api').replace(/\/api\/?$/, '');
 
@@ -47,25 +54,40 @@ const MainLayout = ({ children }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, logout } = useAuth();
-  const [doctorBadge, setDoctorBadge] = useState(0);
+  const { hospital } = useHospital();
+  const [badges, setBadges] = useState({});
   const avatarSrc = user?.avatarUrl ? `${API_ORIGIN}${user.avatarUrl}` : undefined;
 
-  // Fetch notification count for doctors
+  // Compteurs d'activite en attente par espace. Un seul appel, filtre par role
+  // cote serveur. Le rythme suit celui des files (useVisitQueue) : au-dela, une
+  // pastille perimee vaut moins que pas de pastille du tout.
   useEffect(() => {
-    if (user?.role === 'DOCTOR' || user?.role === 'ADMIN') {
-      const fetchBadge = async () => {
-        try {
-          const response = await api.get('/stats/doctor');
-          setDoctorBadge(response.data.newResultsCount || 0);
-        } catch {
-          // Silently fail
-        }
-      };
-      fetchBadge();
-      const interval = setInterval(fetchBadge, 60000);
-      return () => clearInterval(interval);
-    }
-  }, [user?.role]);
+    if (!user) return undefined;
+
+    const fetchBadges = async () => {
+      try {
+        const response = await api.get('/stats/badges');
+        setBadges(response.data.badges || {});
+      } catch {
+        // Une pastille est un confort : son echec ne doit rien interrompre.
+      }
+    };
+
+    fetchBadges();
+
+    // Suspendu quand l'onglet passe en arriere-plan : les postes restent
+    // allumes toute la journee dans les services.
+    const tick = () => {
+      if (document.visibilityState === 'visible') fetchBadges();
+    };
+    const interval = setInterval(tick, 30000);
+    document.addEventListener('visibilitychange', tick);
+
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', tick);
+    };
+  }, [user]);
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
@@ -91,7 +113,10 @@ const MainLayout = ({ children }) => {
       DOCTOR: 'Médecin',
       CASHIER: 'Caissier',
       RADIOLOGIST: 'Radiologue',
-      LAB_TECHNICIAN: 'Laborantin'
+      LAB_TECHNICIAN: 'Laborantin',
+      TECHNICIAN: 'Technicien',
+      RECEPTIONIST: 'Accueil',
+      NURSE: 'Infirmier'
     };
     return labels[role] || role;
   };
@@ -102,7 +127,10 @@ const MainLayout = ({ children }) => {
       DOCTOR: 'primary',
       CASHIER: 'success',
       RADIOLOGIST: 'info',
-      LAB_TECHNICIAN: 'warning'
+      LAB_TECHNICIAN: 'warning',
+      TECHNICIAN: 'info',
+      RECEPTIONIST: 'secondary',
+      NURSE: 'error'
     };
     return colors[role] || 'default';
   };
@@ -112,14 +140,23 @@ const MainLayout = ({ children }) => {
       { text: 'Tableau de bord', icon: <DashboardRounded />, path: '/dashboard' }
     ];
 
+    // L'accueil ouvre le circuit : son entree precede celle du medecin.
+    if (user?.role === 'RECEPTIONIST' || user?.role === 'ADMIN') {
+      baseItems.push({ text: 'Espace Accueil', icon: <SupportAgentRounded />, path: '/reception', badge: badges.reception });
+    }
+    // Les urgences precedent tout le reste dans le menu du personnel concerne :
+    // c'est le seul ecran ou un retard se compte en vies.
+    if (['NURSE', 'DOCTOR', 'ADMIN'].includes(user?.role)) {
+      baseItems.push({ text: 'Urgences', icon: <EmergencyRounded />, path: '/emergency', badge: badges.emergency });
+    }
     if (user?.role === 'DOCTOR' || user?.role === 'ADMIN') {
-      baseItems.push({ text: 'Espace Médecin', icon: <MedicalServicesRounded />, path: '/doctor' });
+      baseItems.push({ text: 'Espace Médecin', icon: <MedicalServicesRounded />, path: '/doctor', badge: badges.doctor });
     }
     if (user?.role === 'CASHIER' || user?.role === 'ADMIN') {
-      baseItems.push({ text: 'Espace Caisse', icon: <PointOfSaleRounded />, path: '/cashier' });
+      baseItems.push({ text: 'Espace Caisse', icon: <PointOfSaleRounded />, path: '/cashier', badge: badges.cashier });
     }
-    if (user?.role === 'RADIOLOGIST' || user?.role === 'LAB_TECHNICIAN' || user?.role === 'ADMIN') {
-      baseItems.push({ text: 'Espace Service', icon: <ScienceRounded />, path: '/service' });
+    if (SERVICE_ROLES.includes(user?.role) || user?.role === 'ADMIN') {
+      baseItems.push({ text: 'Espace Service', icon: <ScienceRounded />, path: '/service', badge: badges.service });
     }
     if (user?.role === 'ADMIN') {
       baseItems.push({ text: 'Administration', icon: <AdminPanelSettingsRounded />, path: '/admin' });
@@ -169,31 +206,45 @@ const MainLayout = ({ children }) => {
                 }}
               >
                 <ListItemIcon sx={{ color: isActive ? '#1976d2' : 'inherit', minWidth: 40 }}>
-                  {item.path === '/doctor' && doctorBadge > 0 ? (
-                    <Badge badgeContent={doctorBadge} color="error" max={99}>
-                      {item.icon}
-                    </Badge>
-                  ) : item.icon}
+                  {item.icon}
                 </ListItemIcon>
-                <ListItemText 
-                  primary={item.text} 
-                  primaryTypographyProps={{ fontWeight: isActive ? 'bold' : 'medium' }} 
+                <ListItemText
+                  primary={item.text}
+                  primaryTypographyProps={{ fontWeight: isActive ? 'bold' : 'medium' }}
                 />
+                {/* Pastille de fin de ligne : le menu est large et libelle, un
+                    compteur lisible y passe mieux qu'une puce sur l'icone.
+                    Absente a zero, pour qu'elle garde sa valeur de signal. */}
+                {item.badge > 0 && (
+                  <Chip
+                    label={item.badge > 99 ? '99+' : item.badge}
+                    size="small"
+                    color="warning"
+                    aria-label={`${item.badge} en attente`}
+                    sx={{
+                      height: 22,
+                      minWidth: 22,
+                      fontWeight: 'bold',
+                      fontSize: '0.75rem',
+                      '& .MuiChip-label': { px: 0.75 }
+                    }}
+                  />
+                )}
               </ListItemButton>
             </ListItem>
           );
         })}
       </List>
 
-      {/* Pied de Sidebar (Logo H360) */}
+      {/* Pied de Sidebar : le produit, puis l'établissement qui l'exploite */}
       <Box sx={{ p: 3, display: 'flex', alignItems: 'center', gap: 2 }}>
-        <img src="logo-black.png" alt="Logo" style={{ width: 50, height: 50 }} />
-        <Box>
+        <img src={APP_IDENTITY.logo} alt={APP_IDENTITY.name} style={{ width: 50, height: 50 }} />
+        <Box sx={{ minWidth: 0 }}>
           <Typography variant="subtitle1" fontWeight="bold" sx={{ lineHeight: 1.2 }}>
-            H360
+            {APP_IDENTITY.name}
           </Typography>
-          <Typography variant="caption" color="textSecondary">
-            CHU Tokoin
+          <Typography variant="caption" color="textSecondary" noWrap display="block">
+            {hospital.name}
           </Typography>
         </Box>
       </Box>

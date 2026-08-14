@@ -1,7 +1,35 @@
-const { Prescription, PrescriptionExam, Patient, Exam, User, Payment, Service } = require('../models');
+const fs = require('fs');
+const path = require('path');
+const { Prescription, PrescriptionExam, Patient, Exam, User, Payment, Service, Visit, Invoice } = require('../models');
 const { validationResult } = require('express-validator');
 const { Op } = require('sequelize');
 const logger = require('../utils/logger');
+const { getHospitalSettings, getDocumentHeaderLines } = require('../services/hospitalSettingsService');
+const { ensureExamInvoice } = require('../services/examBillingService');
+const { cancelInvoice } = require('../services/invoiceService');
+
+/**
+ * Chemin disque du logo, s'il est imprimable par PDFKit (PNG et JPEG
+ * uniquement : un logo SVG ou WEBP reste affichable a l'ecran mais l'en-tete
+ * du PDF se rabat alors sur le seul nom de l'etablissement).
+ */
+const getPrintableLogoPath = (logoUrl) => {
+  if (!logoUrl) return null;
+
+  try {
+    const uploadDir = process.env.UPLOAD_PATH || './uploads';
+    const brandingDir = path.resolve(uploadDir, 'branding');
+    const filePath = path.resolve(uploadDir, logoUrl.replace(/^\/uploads\//, ''));
+
+    if (!filePath.startsWith(brandingDir + path.sep)) return null;
+    if (!['.png', '.jpg', '.jpeg'].includes(path.extname(filePath).toLowerCase())) return null;
+    if (!fs.existsSync(filePath)) return null;
+
+    return filePath;
+  } catch (error) {
+    return null;
+  }
+};
 
 const prescriptionController = {
   /**
@@ -15,7 +43,7 @@ const prescriptionController = {
         return res.status(400).json({ errors: errors.array() });
       }
 
-      const { patientId, examIds, notes } = req.body;
+      const { patientId, examIds, notes, visitId } = req.body;
 
       // Verifier que le patient existe
       const patient = await Patient.findByPk(patientId);
@@ -23,6 +51,28 @@ const prescriptionController = {
         return res.status(404).json({
           error: 'Patient non trouve'
         });
+      }
+
+      // Rattachement au passage en cours. Optionnel : les prescriptions
+      // anterieures a la mise en place de l'accueil n'ont pas de passage.
+      if (visitId) {
+        const visit = await Visit.findByPk(visitId);
+
+        if (!visit) {
+          return res.status(404).json({ error: 'Passage non trouve' });
+        }
+
+        if (visit.patientId !== patientId) {
+          return res.status(400).json({
+            error: 'Ce passage concerne un autre patient'
+          });
+        }
+
+        if (visit.status !== 'IN_CONSULT') {
+          return res.status(409).json({
+            error: `Le passage doit etre en consultation pour recevoir une prescription (statut : ${visit.status})`
+          });
+        }
       }
 
       // Recuperer les examens et calculer le total
@@ -52,6 +102,7 @@ const prescriptionController = {
       const prescription = await Prescription.create({
         patientId,
         doctorId: req.user.id,
+        visitId: visitId || null,
         totalAmount,
         notes
       });
@@ -65,6 +116,11 @@ const prescriptionController = {
       }));
 
       await PrescriptionExam.bulkCreate(prescriptionExams);
+
+      // La facture est emise ici, ou nait la creance, et non au guichet : la
+      // caisse n'a ainsi qu'un seul objet a traiter, la facture, qu'elle porte
+      // une consultation ou des examens.
+      const invoice = await ensureExamInvoice(prescription.id, { issuedBy: req.user.id });
 
       // Recuperer la prescription complete avec les relations
       const fullPrescription = await Prescription.findByPk(prescription.id, {
@@ -86,12 +142,14 @@ const prescriptionController = {
       logger.info('Prescription creee', {
         prescriptionId: prescription.id,
         prescriptionNumber: prescription.prescriptionNumber,
-        doctorId: req.user.id
+        doctorId: req.user.id,
+        invoiceNumber: invoice ? invoice.invoiceNumber : null
       });
 
       res.status(201).json({
         message: 'Prescription creee avec succes',
-        prescription: fullPrescription
+        prescription: fullPrescription,
+        invoice
       });
     } catch (error) {
       logger.error('Create prescription error:', error);
@@ -289,6 +347,24 @@ const prescriptionController = {
         { where: { prescriptionId: prescription.id } }
       );
 
+      // La facture suit la prescription : la laisser ouverte ferait apparaitre
+      // indefiniment a la caisse une creance sans objet. Seules les prescriptions
+      // PENDING arrivent ici, donc aucun encaissement n'a eu lieu.
+      const invoice = await Invoice.findOne({
+        where: {
+          prescriptionId: prescription.id,
+          invoiceType: 'EXAM',
+          status: { [Op.ne]: 'CANCELLED' }
+        }
+      });
+
+      if (invoice) {
+        await cancelInvoice(invoice.id, {
+          reason: `Prescription ${prescription.prescriptionNumber} annulee`,
+          userId: req.user.id
+        });
+      }
+
       logger.info('Prescription annulee', { prescriptionId: prescription.id });
 
       res.json({
@@ -441,6 +517,8 @@ const prescriptionController = {
         return res.status(404).json({ error: 'Prescription non trouvee' });
       }
 
+      const hospital = await getHospitalSettings();
+
       const doc = new PDFDocument({ size: 'A4', margin: 50 });
 
       res.setHeader('Content-Type', 'application/pdf');
@@ -448,10 +526,22 @@ const prescriptionController = {
 
       doc.pipe(res);
 
-      // Header
-      doc.fontSize(20).font('Helvetica-Bold').text('CHU TOKOIN', { align: 'center' });
-      doc.fontSize(10).font('Helvetica').text('Centre Hospitalier Universitaire de Tokoin - Lome, Togo', { align: 'center' });
+      // En-tete : identite de l'etablissement, administrable
+      const logoPath = getPrintableLogoPath(hospital.logoUrl);
+      if (logoPath) {
+        // Logo cale a gauche, le bloc texte restant centre sur la page
+        const headerTop = doc.y;
+        doc.image(logoPath, 50, headerTop, { fit: [60, 60] });
+        doc.y = headerTop;
+      }
+
+      doc.fontSize(20).font('Helvetica-Bold').text(hospital.name.toUpperCase(), { align: 'center' });
+      doc.fontSize(10).font('Helvetica');
+      getDocumentHeaderLines(hospital).forEach((line) => {
+        doc.text(line, { align: 'center' });
+      });
       doc.moveDown(0.5);
+      if (logoPath && doc.y < 120) doc.y = 120;
       doc.moveTo(50, doc.y).lineTo(545, doc.y).stroke();
       doc.moveDown(1);
 
@@ -544,6 +634,12 @@ const prescriptionController = {
           50, 750,
           { align: 'center' }
         );
+
+      // Mention legale propre a l'etablissement (agrement, RCCM, ...)
+      if (hospital.documentFooter) {
+        doc.fontSize(8).font('Helvetica')
+          .text(hospital.documentFooter, 50, 762, { align: 'center', width: 495 });
+      }
 
       doc.end();
     } catch (error) {

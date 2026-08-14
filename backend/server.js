@@ -12,9 +12,13 @@ const { notFound, errorHandler } = require('./middleware/errorHandler');
 // Import des routes
 const authRoutes = require('./routes/auth');
 const patientRoutes = require('./routes/patients');
+const visitRoutes = require('./routes/visits');
 const examRoutes = require('./routes/exams');
 const prescriptionRoutes = require('./routes/prescriptions');
 const paymentRoutes = require('./routes/payments');
+const invoiceRoutes = require('./routes/invoices');
+const specialtyRoutes = require('./routes/specialties');
+const emergencyRoutes = require('./routes/emergencies');
 const serviceRoutes = require('./routes/services');
 const statsRoutes = require('./routes/stats');
 const resultRoutes = require('./routes/results');
@@ -25,6 +29,7 @@ const userRoutes = require('./routes/users');
 const serviceAdminRoutes = require('./routes/serviceAdmin');
 const mobileMoneyRoutes = require('./routes/mobileMoney');
 const healthRoutes = require('./routes/health');
+const settingsRoutes = require('./routes/hospitalSettings');
 
 // Import du rate limiter
 const { generalLimiter, authLimiter, paymentLimiter, portalLimiter } = require('./middleware/rateLimiter');
@@ -89,10 +94,14 @@ app.use('/api/health', healthRoutes);
 // Routes API avec rate limiting specifique
 app.use('/api/auth', authLimiter, authRoutes);
 app.use('/api/patients', patientRoutes);
+app.use('/api/visits', visitRoutes);
 app.use('/api/exams', examRoutes);
 app.use('/api/prescriptions', prescriptionRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/payments/mobile-money', paymentLimiter, mobileMoneyRoutes);
+app.use('/api/invoices', invoiceRoutes);
+app.use('/api/specialties', specialtyRoutes);
+app.use('/api/emergencies', emergencyRoutes);
 app.use('/api/services', serviceRoutes);
 app.use('/api/stats', statsRoutes);
 app.use('/api/results', resultRoutes);
@@ -101,6 +110,7 @@ app.use('/api/portal', portalLimiter, portalRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/admin/services', serviceAdminRoutes);
+app.use('/api/settings', settingsRoutes);
 
 // Middleware de gestion des erreurs
 app.use(notFound);

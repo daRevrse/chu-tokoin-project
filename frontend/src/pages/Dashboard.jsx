@@ -14,7 +14,10 @@ import {
   PointOfSaleRounded,
   ScienceRounded,
   AdminPanelSettingsRounded,
-  BiotechRounded
+  BiotechRounded,
+  SupportAgentRounded,
+  MedicalInformationRounded,
+  EmergencyRounded
 } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -24,6 +27,20 @@ const Dashboard = () => {
 
   // Configuration des cartes enrichie avec les couleurs de fond
   const roleCards = {
+    RECEPTIONIST: {
+      title: 'Espace Accueil',
+      description: 'Enregistrer les patients et gérer la file d\'attente',
+      icon: <SupportAgentRounded sx={{ fontSize: 40, color: '#7b1fa2' }} />,
+      path: '/reception',
+      bgColor: '#f3e5f5'
+    },
+    NURSE: {
+      title: 'Urgences',
+      description: 'Admettre, trier et suivre les patients du service d\'urgences',
+      icon: <EmergencyRounded sx={{ fontSize: 40, color: '#d32f2f' }} />,
+      path: '/emergency',
+      bgColor: '#ffebee'
+    },
     DOCTOR: {
       title: 'Espace Médecin',
       description: 'Créer des prescriptions et consulter les résultats',
@@ -51,6 +68,15 @@ const Dashboard = () => {
       icon: <ScienceRounded sx={{ fontSize: 40, color: '#9c27b0' }} />,
       path: '/service',
       bgColor: '#f3e5f5'
+    },
+    // Role generique du personnel de service : le titre reprend le service
+    // d'affectation, seul RADIOLOGIST et LAB_TECHNICIAN ayant un libelle fige.
+    TECHNICIAN: {
+      title: user?.service?.name ? `Service ${user.service.name}` : 'Espace Service',
+      description: 'Scanner les QR codes et valider les examens',
+      icon: <MedicalInformationRounded sx={{ fontSize: 40, color: '#0288d1' }} />,
+      path: '/service',
+      bgColor: '#e1f5fe'
     },
     ADMIN: {
       title: 'Administration',

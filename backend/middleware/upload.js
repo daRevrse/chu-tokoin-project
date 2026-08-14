@@ -7,6 +7,7 @@ const fs = require('fs');
 const uploadDir = process.env.UPLOAD_PATH || './uploads';
 const resultsDir = path.join(uploadDir, 'results');
 const avatarsDir = path.join(uploadDir, 'avatars');
+const brandingDir = path.join(uploadDir, 'branding');
 
 if (!fs.existsSync(resultsDir)) {
   fs.mkdirSync(resultsDir, { recursive: true });
@@ -14,6 +15,10 @@ if (!fs.existsSync(resultsDir)) {
 
 if (!fs.existsSync(avatarsDir)) {
   fs.mkdirSync(avatarsDir, { recursive: true });
+}
+
+if (!fs.existsSync(brandingDir)) {
+  fs.mkdirSync(brandingDir, { recursive: true });
 }
 
 // Configuration du stockage
@@ -99,10 +104,41 @@ const avatarUpload = multer({
   }
 });
 
+// --- Logo de l'etablissement ---
+// Un logo est imprime sur les documents : le SVG est accepte en plus des
+// formats matriciels pour rester net a l'impression.
+const logoStorage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, brandingDir),
+  filename: (req, file, cb) => {
+    const uniqueName = `${crypto.randomUUID()}${path.extname(file.originalname)}`;
+    cb(null, uniqueName);
+  }
+});
+
+const logoFileFilter = (req, file, cb) => {
+  const allowedMimes = ['image/jpeg', 'image/png', 'image/webp', 'image/svg+xml'];
+
+  if (allowedMimes.includes(file.mimetype)) {
+    cb(null, true);
+  } else {
+    cb(new Error('Format non autorise. Formats acceptes : JPEG, PNG, WEBP, SVG'), false);
+  }
+};
+
+const logoUpload = multer({
+  storage: logoStorage,
+  fileFilter: logoFileFilter,
+  limits: {
+    fileSize: 2 * 1024 * 1024 // 2 Mo
+  }
+});
+
 module.exports = {
   upload,
   avatarUpload,
+  logoUpload,
   getFileType,
   resultsDir,
-  avatarsDir
+  avatarsDir,
+  brandingDir
 };

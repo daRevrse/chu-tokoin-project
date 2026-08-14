@@ -4,6 +4,7 @@ const { body } = require('express-validator');
 const patientController = require('../controllers/patientController');
 const authenticateToken = require('../middleware/auth');
 const roleCheck = require('../middleware/roleCheck');
+const { SERVICE_ROLES } = require('../utils/roles');
 
 // Validation pour la creation de patient
 const createValidation = [
@@ -25,8 +26,11 @@ const createValidation = [
     .trim()
     .notEmpty()
     .withMessage('Le telephone est requis'),
+  // `checkFalsy` est indispensable : le formulaire envoie toujours la cle,
+  // avec une chaine vide quand le champ n'est pas rempli. `.optional()` seul
+  // n'ignore que `undefined` et rejetterait tout patient sans email.
   body('email')
-    .optional()
+    .optional({ checkFalsy: true })
     .isEmail()
     .withMessage('Email invalide')
 ];
@@ -35,29 +39,32 @@ const createValidation = [
 router.use(authenticateToken);
 
 // Routes
+// L'identite du patient est du ressort de l'accueil : le medecin la consulte
+// mais ne la cree ni ne la modifie. Le dossier medical reste cote medecin
+// (voir routes/patientRecords.js).
 router.post('/',
-  roleCheck('DOCTOR', 'ADMIN'),
+  roleCheck('RECEPTIONIST', 'ADMIN'),
   createValidation,
   patientController.create
 );
 
 router.get('/',
-  roleCheck('DOCTOR', 'CASHIER', 'ADMIN'),
+  roleCheck('RECEPTIONIST', 'DOCTOR', 'CASHIER', 'ADMIN'),
   patientController.search
 );
 
 router.get('/number/:number',
-  roleCheck('DOCTOR', 'CASHIER', 'ADMIN'),
+  roleCheck('RECEPTIONIST', 'DOCTOR', 'CASHIER', 'ADMIN'),
   patientController.getByNumber
 );
 
 router.get('/:id',
-  roleCheck('DOCTOR', 'CASHIER', 'RADIOLOGIST', 'LAB_TECHNICIAN', 'ADMIN'),
+  roleCheck('RECEPTIONIST', 'DOCTOR', 'CASHIER', ...SERVICE_ROLES, 'ADMIN'),
   patientController.getById
 );
 
 router.put('/:id',
-  roleCheck('DOCTOR', 'ADMIN'),
+  roleCheck('RECEPTIONIST', 'ADMIN'),
   patientController.update
 );
 
